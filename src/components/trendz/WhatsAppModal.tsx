@@ -1,4 +1,4 @@
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import type { Rental } from "@/lib/trendz/types";
 import { balanceOf, inr, waLink, waMessage } from "@/lib/trendz/utils";
 import { goldButtonClass, ghostButtonClass } from "./primitives";
