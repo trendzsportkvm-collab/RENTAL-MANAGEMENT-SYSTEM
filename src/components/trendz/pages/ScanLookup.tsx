@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { useTrendz } from "@/lib/trendz/store";
 import type { Product } from "@/lib/trendz/types";
 import { inr } from "@/lib/trendz/utils";
-import { StockBadge, goldButtonClass, inputClass } from "../primitives";
+import { StockBadge, goldButtonClass } from "../primitives";
 
 export function ScanLookup({ onPutOut }: { onPutOut: (p: Product, branch?: string) => void }) {
   const { products } = useTrendz();
