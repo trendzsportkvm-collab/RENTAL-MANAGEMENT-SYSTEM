@@ -17,7 +17,9 @@ export function WhatsAppModal({
   return (
     <Dialog open={!!rental} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="glass-strong sm:max-w-md">
+        <DialogTitle className="sr-only">Rental confirmed</DialogTitle>
         <div className="text-center">
+
           <p className="text-[11px] tracking-[0.2em] text-emerald uppercase">
             Rental confirmed
           </p>
