@@ -1,57 +1,136 @@
-import { BarChart3, ClipboardList, LayoutGrid, ScanLine, Upload } from "lucide-react";
+import { useState } from "react";
+import { BarChart3, ClipboardList, LayoutGrid, ScanLine, Upload, ChevronDown, Plus, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTrendz } from "@/lib/trendz/store";
 
-export type PageKey = "scan" | "products" | "rentals" | "ledger" | "import";
-
-export const NAV: { key: PageKey; label: string; icon: typeof ScanLine }[] = [
-  { key: "scan", label: "Scan & Lookup", icon: ScanLine },
-  { key: "products", label: "All Products", icon: LayoutGrid },
-  { key: "rentals", label: "Rentals Dashboard", icon: ClipboardList },
-  { key: "ledger", label: "Financial Ledger", icon: BarChart3 },
-  { key: "import", label: "CSV Import", icon: Upload },
-];
+export type PageKey = "scan" | "products" | "rentals" | "dashboard" | "stock" | "ledger" | "import" | "add-product";
 
 export function Sidebar({
   active,
   onChange,
+  isOpen,
+  onClose,
 }: {
   active: PageKey;
   onChange: (key: PageKey) => void;
+  isOpen?: boolean;
+  onClose?: () => void;
 }) {
+  const { categories } = useTrendz();
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
+    "Rental Management": true,
+    Products: true,
+    Finance: true,
+  });
+  
+  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
+
+  const toggleGroup = (title: string) => {
+    setOpenGroups((prev) => ({ ...prev, [title]: !prev[title] }));
+  };
+
+  const toggleCategory = (cat: string) => {
+    setOpenCategories((prev) => ({ ...prev, [cat]: !prev[cat] }));
+  };
+
+  const navGroups = [
+    {
+      title: "Rental Management",
+      items: [
+        { key: "scan" as PageKey, label: "Inventory Search", icon: ScanLine },
+        { key: "rentals" as PageKey, label: "All Rentals", icon: ClipboardList },
+        { key: "dashboard" as PageKey, label: "Dashboard", icon: BarChart3 },
+      ],
+    },
+    {
+      title: "Products",
+      items: [
+        { key: "products" as PageKey, label: "All Products", icon: LayoutGrid },
+        { key: "add-product" as PageKey, label: "Add New Product", icon: Plus },
+        { key: "stock" as PageKey, label: "Stock Locations", icon: LayoutGrid },
+        { key: "import" as PageKey, label: "CSV Import", icon: Upload },
+      ],
+    },
+    {
+      title: "Finance",
+      items: [
+        { key: "ledger" as PageKey, label: "Financial Ledger", icon: BarChart3 },
+      ],
+    },
+  ];
+
   return (
-    <aside className="fixed top-0 left-0 z-30 flex h-screen w-60 flex-col border-r border-sidebar-border bg-sidebar">
-      <div className="px-6 pt-7 pb-6">
-        <h1 className="font-display text-2xl leading-none font-semibold text-foreground">
-          Trendz
-        </h1>
-        <p className="mt-1.5 text-[10px] tracking-[0.22em] text-gold uppercase">
-          Rental Studio
-        </p>
+    <aside className={cn(
+      "fixed top-0 left-0 z-40 flex h-screen w-64 flex-col border-r border-sidebar-border bg-sidebar overflow-y-auto transition-transform duration-300 md:translate-x-0",
+      isOpen ? "translate-x-0" : "-translate-x-full"
+    )}>
+      <div className="px-6 pt-7 pb-6 flex justify-between items-center">
+        <div>
+          <h1 className="font-display text-2xl leading-none font-semibold text-foreground">
+            Trendz
+          </h1>
+          <p className="mt-1.5 text-[10px] tracking-[0.22em] text-gold uppercase">
+            Rental Studio
+          </p>
+        </div>
+        {isOpen && (
+          <button onClick={onClose} className="md:hidden p-2 text-muted-foreground hover:bg-black/5 rounded-full">
+            ✕
+          </button>
+        )}
       </div>
 
-      <nav className="flex flex-col gap-1 px-3">
-        {NAV.map(({ key, label, icon: Icon }) => {
-          const isActive = key === active;
+      <nav className="flex flex-col gap-4 px-3 pb-8">
+        {navGroups.map((group) => {
+          const isOpen = openGroups[group.title];
           return (
-            <button
-              key={key}
-              onClick={() => onChange(key)}
-              className={cn(
-                "group relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-all duration-200",
-                isActive
-                  ? "bg-white/[0.06] text-foreground"
-                  : "text-muted-foreground hover:bg-white/[0.03] hover:text-foreground",
-              )}
-            >
-              <span
+            <div key={group.title} className="flex flex-col">
+              <button
+                onClick={() => toggleGroup(group.title)}
+                className="flex items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {group.title}
+                <ChevronDown
+                  className={cn(
+                    "h-3.5 w-3.5 transition-transform duration-200",
+                    isOpen ? "rotate-180" : ""
+                  )}
+                />
+              </button>
+              
+              <div
                 className={cn(
-                  "absolute top-1.5 bottom-1.5 left-0 w-[2px] rounded-full transition-all duration-200",
-                  isActive ? "bg-gold" : "bg-transparent",
+                  "flex flex-col gap-1 overflow-hidden transition-all duration-200",
+                  isOpen ? "mt-1 opacity-100" : "max-h-0 opacity-0"
                 )}
-              />
-              <Icon className={cn("h-4 w-4", isActive && "text-gold")} />
-              {label}
-            </button>
+                style={{ maxHeight: isOpen ? "1000px" : "0px" }}
+              >
+                {group.items.map((item) => {
+                  const isActive = item.key === active;
+                  return (
+                    <button
+                      key={item.key}
+                      onClick={() => onChange(item.key)}
+                      className={cn(
+                        "group relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-all duration-200",
+                        isActive
+                          ? "bg-white/[0.06] text-foreground"
+                          : "text-muted-foreground hover:bg-white/[0.03] hover:text-foreground",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "absolute top-1.5 bottom-1.5 left-0 w-[2px] rounded-full transition-all duration-200",
+                          isActive ? "bg-gold" : "bg-transparent",
+                        )}
+                      />
+                      <item.icon className={cn("h-4 w-4", isActive && "text-gold")} />
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           );
         })}
       </nav>

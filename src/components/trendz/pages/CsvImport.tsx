@@ -9,7 +9,7 @@ const TEMPLATE: (string | number)[][] = [
   ["name", "sku", "daily_rate", "branch_name", "quantity"],
   ["Bridal Suit Red", "BS-RED-001", 500, "Kalpetta", 3],
   ["Bridal Suit Red", "BS-RED-001", 500, "Bathery", 2],
-  ["Denim Jacket Blue", "DJ-BLU-002", 300, "Kalpetta", 5],
+  ["Bridal Gown White", "GWN-WHT-001", 2000, "Kalpetta", 1],
 ];
 
 const parseCSV = (text: string): ImportRow[] => {

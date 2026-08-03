@@ -2,14 +2,34 @@ export type PaymentStatus = "unpaid" | "partial" | "paid";
 export type RentalStatus = "out" | "returned";
 export type ReturnCondition = "good" | "damaged" | "missing";
 
+export interface ProductVariation {
+  id: string;
+  name: string;
+  sku: string;
+  dailyRate: number;
+  stock: Record<string, number>;
+  attributes: Record<string, string>;
+  enabled: boolean;
+}
+
+export interface ProductAttribute {
+  name: string;
+  values: string[];
+}
+
 export interface Product {
   id: string;
   name: string;
   sku: string;
   dailyRate: number;
   image: string;
-  /** branch name -> quantity in stock */
+  description?: string;
+  type: "simple" | "variable";
+  category: string;
+  /** branch name -> quantity in stock (for simple products) */
   stock: Record<string, number>;
+  attributes?: ProductAttribute[];
+  variations?: ProductVariation[];
 }
 
 export interface Rental {
@@ -17,6 +37,8 @@ export interface Rental {
   token: string;
   productId: string;
   productName: string;
+  variationId?: string;
+  variationName?: string;
   sku: string;
   image: string;
   branch: string;
@@ -35,4 +57,14 @@ export interface Rental {
   condition?: ReturnCondition;
 }
 
-export const BRANCHES = ["Kalpetta", "Bathery"] as const;
+export interface StockLocation {
+  id: string;
+  name: string;
+  slug: string;
+  isDefault: boolean;
+  backorderLocation: boolean;
+  autoAllocate: boolean;
+  priority: number;
+  email: string;
+  enabled: boolean;
+}

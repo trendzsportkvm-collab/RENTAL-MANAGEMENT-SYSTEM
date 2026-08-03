@@ -1,43 +1,124 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
-import bridal from "@/assets/bridal-suit.jpg";
-import linen from "@/assets/linen-shirt.jpg";
-import denim from "@/assets/denim-jacket.jpg";
-import saree from "@/assets/silk-saree.jpg";
-import type { PaymentStatus, Product, Rental, ReturnCondition } from "./types";
+import type { PaymentStatus, Product, Rental, ReturnCondition, StockLocation } from "./types";
 import { nextToken, shiftISO, todayISO } from "./utils";
+
+const initialLocations: StockLocation[] = [
+  {
+    id: "l1",
+    name: "Branch 1 - Kalpetta",
+    slug: "branch-1-kalpetta",
+    isDefault: false,
+    backorderLocation: false,
+    autoAllocate: false,
+    priority: 0,
+    email: "",
+    enabled: true,
+  },
+  {
+    id: "l2",
+    name: "Branch 2 - Sulthan Bathery",
+    slug: "branch-2-sulthan-bathery",
+    isDefault: false,
+    backorderLocation: false,
+    autoAllocate: false,
+    priority: 0,
+    email: "",
+    enabled: true,
+  }
+];
 
 const initialProducts: Product[] = [
   {
     id: "p1",
-    name: "Bridal Suit",
-    sku: "SU-001",
-    dailyRate: 999,
-    image: bridal,
-    stock: { Kalpetta: 3, Bathery: 2 },
+    name: "Designer Bridal Lehenga",
+    sku: "LEH-001",
+    dailyRate: 2499,
+    image: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&q=80",
+    type: "simple",
+    category: "Lehenga",
+    stock: { "Branch 1 - Kalpetta": 3, "Branch 2 - Sulthan Bathery": 2 },
   },
   {
     id: "p2",
-    name: "Linen Shirt",
-    sku: "WLS-001",
-    dailyRate: 199,
-    image: linen,
-    stock: { Kalpetta: 5, Bathery: 0 },
+    name: "Groom Sherwani",
+    sku: "SHR-001",
+    dailyRate: 1899,
+    image: "https://images.unsplash.com/photo-1605908502724-906062957813?w=800&q=80",
+    type: "simple",
+    category: "Sherwani",
+    stock: { "Branch 1 - Kalpetta": 5, "Branch 2 - Sulthan Bathery": 0 },
   },
   {
     id: "p3",
-    name: "Denim Jacket",
-    sku: "DJ-001",
-    dailyRate: 299,
-    image: denim,
-    stock: { Kalpetta: 0, Bathery: 4 },
+    name: "Bridal Gown",
+    sku: "GWN-001",
+    dailyRate: 2999,
+    image: "https://images.unsplash.com/photo-1596455607563-ad6193f76b17?w=800&q=80",
+    type: "simple",
+    category: "Gown",
+    stock: { "Branch 1 - Kalpetta": 0, "Branch 2 - Sulthan Bathery": 4 },
   },
   {
     id: "p4",
-    name: "Silk Saree",
+    name: "Kanchipuram Silk Saree",
     sku: "SS-001",
-    dailyRate: 799,
-    image: saree,
-    stock: { Kalpetta: 2, Bathery: 1 },
+    dailyRate: 1299,
+    image: "https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=800&q=80",
+    type: "simple",
+    category: "Saree",
+    stock: { "Branch 1 - Kalpetta": 2, "Branch 2 - Sulthan Bathery": 1 },
+  },
+  {
+    id: "p5",
+    name: "Premium Tuxedo",
+    sku: "TUX",
+    dailyRate: 1599,
+    image: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800&q=80",
+    type: "variable",
+    category: "Suit",
+    stock: {},
+    attributes: [
+      { name: "Color", values: ["Black", "Navy"] },
+      { name: "Size", values: ["38", "40"] },
+    ],
+    variations: [
+      {
+        id: "v1",
+        name: "Color: Black, Size: 38",
+        sku: "TUX-BLK-38",
+        dailyRate: 1599,
+        stock: { "Branch 1 - Kalpetta": 2, "Branch 2 - Sulthan Bathery": 1 },
+        attributes: { Color: "Black", Size: "38" },
+        enabled: true,
+      },
+      {
+        id: "v2",
+        name: "Color: Black, Size: 40",
+        sku: "TUX-BLK-40",
+        dailyRate: 1599,
+        stock: { "Branch 1 - Kalpetta": 0, "Branch 2 - Sulthan Bathery": 1 },
+        attributes: { Color: "Black", Size: "40" },
+        enabled: true,
+      },
+      {
+        id: "v3",
+        name: "Color: Navy, Size: 38",
+        sku: "TUX-NVY-38",
+        dailyRate: 1599,
+        stock: { "Branch 1 - Kalpetta": 1, "Branch 2 - Sulthan Bathery": 0 },
+        attributes: { Color: "Navy", Size: "38" },
+        enabled: true,
+      },
+      {
+        id: "v4",
+        name: "Color: Navy, Size: 40",
+        sku: "TUX-NVY-40",
+        dailyRate: 1599,
+        stock: { "Branch 1 - Kalpetta": 1, "Branch 2 - Sulthan Bathery": 1 },
+        attributes: { Color: "Navy", Size: "40" },
+        enabled: true,
+      },
+    ],
   },
 ];
 
@@ -46,18 +127,18 @@ const initialRentals: Rental[] = [
     id: "r1",
     token: "TRZ-2024-0001",
     productId: "p1",
-    productName: "Bridal Suit",
-    sku: "SU-001",
-    image: bridal,
-    branch: "Kalpetta",
+    productName: "Designer Bridal Lehenga",
+    sku: "LEH-001",
+    image: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&q=80",
+    branch: "Branch 1 - Kalpetta",
     customerName: "Arjun Kumar",
     customerPhone: "9847012345",
     qty: 1,
     rentDate: shiftISO(-4),
     dueDate: shiftISO(-1),
-    dailyRate: 999,
-    total: 999,
-    advance: 500,
+    dailyRate: 2499,
+    total: 9996,
+    advance: 5000,
     paymentStatus: "partial",
     status: "out",
     notes: "Wedding function at Sultan Bathery.",
@@ -66,17 +147,17 @@ const initialRentals: Rental[] = [
     id: "r2",
     token: "TRZ-2024-0002",
     productId: "p2",
-    productName: "Linen Shirt",
-    sku: "WLS-001",
-    image: linen,
-    branch: "Bathery",
+    productName: "Groom Sherwani",
+    sku: "SHR-001",
+    image: "https://images.unsplash.com/photo-1605908502724-906062957813?w=800&q=80",
+    branch: "Branch 2 - Sulthan Bathery",
     customerName: "Meera Nair",
     customerPhone: "9995512345",
     qty: 1,
     rentDate: todayISO(),
     dueDate: shiftISO(1),
-    dailyRate: 199,
-    total: 199,
+    dailyRate: 1899,
+    total: 1899,
     advance: 0,
     paymentStatus: "unpaid",
     status: "out",
@@ -86,18 +167,18 @@ const initialRentals: Rental[] = [
     id: "r3",
     token: "TRZ-2024-0003",
     productId: "p4",
-    productName: "Silk Saree",
+    productName: "Kanchipuram Silk Saree",
     sku: "SS-001",
-    image: saree,
-    branch: "Kalpetta",
+    image: "https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=800&q=80",
+    branch: "Branch 1 - Kalpetta",
     customerName: "Priya Menon",
     customerPhone: "9846098460",
     qty: 1,
     rentDate: shiftISO(-1),
     dueDate: shiftISO(7),
-    dailyRate: 799,
-    total: 5593,
-    advance: 5593,
+    dailyRate: 1299,
+    total: 10392,
+    advance: 10392,
     paymentStatus: "paid",
     status: "out",
     notes: "Onam celebration.",
@@ -116,32 +197,48 @@ interface StoreValue {
   products: Product[];
   rentals: Rental[];
   branches: string[];
+  locations: StockLocation[];
+  categories: string[];
   createRental: (r: Omit<Rental, "id" | "token" | "status">) => Rental;
+  createProduct: (p: Omit<Product, "id">) => Product;
+  updateProduct: (id: string, p: Partial<Product>) => void;
   updateRental: (id: string, patch: Partial<Rental>) => void;
   setPaymentStatus: (id: string, p: PaymentStatus) => void;
   markReturned: (id: string, condition: ReturnCondition) => void;
   importProducts: (rows: ImportRow[]) => { created: number; updated: number; errors: string[] };
+  createLocation: (loc: Omit<StockLocation, "id">) => void;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
 
+const initialCategories = ["Suit", "Shirt", "Jacket", "Saree", "Jeans", "Tuxedo"];
+
 export function TrendzProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [rentals, setRentals] = useState<Rental[]>(initialRentals);
+  const [categories, setCategories] = useState<string[]>(initialCategories);
+  const [locations, setLocations] = useState<StockLocation[]>(initialLocations);
 
   const branches = useMemo(() => {
-    const set = new Set<string>(["Kalpetta", "Bathery"]);
-    products.forEach((p) => Object.keys(p.stock).forEach((b) => set.add(b)));
-    return [...set];
-  }, [products]);
+    return locations.map(l => l.name);
+  }, [locations]);
 
-  const adjustStock = useCallback((productId: string, branch: string, delta: number) => {
+  const adjustStock = useCallback((productId: string, branch: string, delta: number, variationId?: string) => {
     setProducts((prev) =>
-      prev.map((p) =>
-        p.id === productId
-          ? { ...p, stock: { ...p.stock, [branch]: Math.max(0, (p.stock[branch] ?? 0) + delta) } }
-          : p,
-      ),
+      prev.map((p) => {
+        if (p.id !== productId) return p;
+        if (p.type === "simple" || !variationId) {
+          return { ...p, stock: { ...p.stock, [branch]: Math.max(0, (p.stock[branch] ?? 0) + delta) } };
+        }
+        return {
+          ...p,
+          variations: p.variations?.map((v) =>
+            v.id === variationId
+              ? { ...v, stock: { ...v.stock, [branch]: Math.max(0, (v.stock[branch] ?? 0) + delta) } }
+              : v
+          ),
+        };
+      })
     );
   }, []);
 
@@ -154,11 +251,21 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
         status: "out",
       };
       setRentals((prev) => [rental, ...prev]);
-      adjustStock(rental.productId, rental.branch, -rental.qty);
+      adjustStock(rental.productId, rental.branch, -rental.qty, rental.variationId);
       return rental;
     },
     [rentals, adjustStock],
   );
+
+  const createProduct: StoreValue["createProduct"] = useCallback((draft) => {
+    const product: Product = { ...draft, id: `p${Date.now()}` };
+    setProducts((prev) => [product, ...prev]);
+    return product;
+  }, []);
+
+  const updateProduct: StoreValue["updateProduct"] = useCallback((id, patch) => {
+    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+  }, []);
 
   const updateRental: StoreValue["updateRental"] = useCallback((id, patch) => {
     setRentals((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
@@ -183,7 +290,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
       setRentals((prev) => {
         const target = prev.find((r) => r.id === id);
         if (target && condition !== "missing") {
-          adjustStock(target.productId, target.branch, target.qty);
+          adjustStock(target.productId, target.branch, target.qty, target.variationId);
         }
         return prev.map((r) =>
           r.id === id
@@ -240,7 +347,9 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
             name,
             sku,
             dailyRate: rate,
-            image: bridal,
+            image: bridal.src,
+            type: "simple",
+            category: "Uncategorized",
             stock: { [branch]: qty },
           });
           created += 1;
@@ -252,18 +361,27 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
     return { created, updated, errors };
   }, []);
 
+  const createLocation: StoreValue["createLocation"] = useCallback((draft) => {
+    setLocations((prev) => [...prev, { ...draft, id: `l${Date.now()}` }]);
+  }, []);
+
   const value = useMemo(
     () => ({
       products,
       rentals,
       branches,
+      locations,
+      categories,
+      createProduct,
+      updateProduct,
       createRental,
       updateRental,
       setPaymentStatus,
       markReturned,
       importProducts,
+      createLocation,
     }),
-    [products, rentals, branches, createRental, updateRental, setPaymentStatus, markReturned, importProducts],
+    [products, rentals, branches, locations, categories, createProduct, updateProduct, createRental, updateRental, setPaymentStatus, markReturned, importProducts, createLocation],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

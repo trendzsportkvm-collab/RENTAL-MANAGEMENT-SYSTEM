@@ -322,7 +322,7 @@ Token: TRZ-2024-0002 | Linen Shirt | Meera Nair | Bathery | Due: tomorrow | Unpa
 
 Token: TRZ-2024-0003 | Silk Saree | Priya Menon | Kalpetta | Due: next week | Paid
 
-State Management Notes (for Lovable)
+### State Management Notes
 
 Use React state (useState/useReducer) for everything — no backend needed yet.
 
@@ -396,15 +396,6 @@ No authentication needed for this prototype
 
 The app should feel fast, responsive, and professional enough to show to a client
 
-This project was built with [Lovable](https://lovable.dev).
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/f1d26ae3-aad8-41b4-83a8-fb1d1aa44903).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
 
 ## Development
 

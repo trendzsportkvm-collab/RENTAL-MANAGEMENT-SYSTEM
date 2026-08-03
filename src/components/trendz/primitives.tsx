@@ -180,6 +180,8 @@ export const inputClass =
 
 export const monoInputClass = cn(inputClass, "font-mono");
 
+export const labelClass = "mb-1.5 block text-[11px] font-medium tracking-[0.1em] text-muted-foreground uppercase";
+
 export const goldButtonClass =
   "inline-flex items-center justify-center gap-2 rounded-md bg-gold px-4 py-2 text-sm font-semibold text-primary-foreground transition-all duration-200 hover:brightness-110 hover:shadow-glow-gold disabled:opacity-50 disabled:hover:shadow-none";
 

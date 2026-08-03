@@ -92,7 +92,7 @@ export function EditRentalModal({
             <input
               type="number"
               className={monoInputClass}
-              value={form.dailyRate}
+              value={form.dailyRate === 0 ? "" : form.dailyRate}
               onChange={(e) => set("dailyRate", Number(e.target.value))}
             />
           </Field>
@@ -100,7 +100,7 @@ export function EditRentalModal({
             <input
               type="number"
               className={monoInputClass}
-              value={form.total}
+              value={form.total === 0 ? "" : form.total}
               onChange={(e) => set("total", Number(e.target.value))}
             />
           </Field>
@@ -108,7 +108,7 @@ export function EditRentalModal({
             <input
               type="number"
               className={monoInputClass}
-              value={form.advance}
+              value={form.advance === 0 ? "" : form.advance}
               onChange={(e) => set("advance", Number(e.target.value))}
             />
           </Field>

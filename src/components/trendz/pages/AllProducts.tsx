@@ -1,34 +1,52 @@
 import { useMemo, useState } from "react";
-import { LayoutGrid, List } from "lucide-react";
+import { Star, Image as ImageIcon } from "lucide-react";
 import { useTrendz } from "@/lib/trendz/store";
 import type { Product } from "@/lib/trendz/types";
 import { inr } from "@/lib/trendz/utils";
-import { BranchPill, StatusBadge, inputClass } from "../primitives";
-
-export function AllProducts({ onOpen }: { onOpen: (p: Product) => void }) {
+import { StatusBadge, inputClass, goldButtonClass } from "../primitives";
+export function AllProducts({ 
+  onOpen, 
+  onEdit 
+}: { 
+  onOpen: (p: Product) => void;
+  onEdit: (id: string | null) => void;
+}) {
   const { products, branches } = useTrendz();
   const [query, setQuery] = useState("");
-  const [branch, setBranch] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [productTypeFilter, setProductTypeFilter] = useState("all");
   const [stockFilter, setStockFilter] = useState("all");
-  const [view, setView] = useState<"grid" | "list">("grid");
+
+  const totalOf = (p: Product) => {
+    if (p.type === "simple") {
+      return Object.values(p.stock).reduce((a, b) => a + b, 0);
+    }
+    return (p.variations || []).reduce((sum, v) => {
+      if (!v.enabled) return sum;
+      return sum + Object.values(v.stock).reduce((a, b) => a + b, 0);
+    }, 0);
+  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return products.filter((p) => {
       if (q && !p.name.toLowerCase().includes(q) && !p.sku.toLowerCase().includes(q)) return false;
-      const total =
-        branch === "all"
-          ? Object.values(p.stock).reduce((a, b) => a + b, 0)
-          : (p.stock[branch] ?? 0);
-      if (branch !== "all" && !(branch in p.stock)) return false;
+      
+      const total = totalOf(p);
       if (stockFilter === "in" && total <= 0) return false;
       if (stockFilter === "out" && total > 0) return false;
+      
+      if (categoryFilter !== "all" && p.category !== categoryFilter) return false;
+      if (productTypeFilter !== "all" && p.type !== productTypeFilter) return false;
+      
       return true;
     });
-  }, [products, query, branch, stockFilter]);
+  }, [products, query, categoryFilter, productTypeFilter, stockFilter]);
 
-  const totalOf = (p: Product) =>
-    branch === "all" ? Object.values(p.stock).reduce((a, b) => a + b, 0) : (p.stock[branch] ?? 0);
+  // Unique categories for the dropdown
+  const uniqueCategories = useMemo(() => {
+    return Array.from(new Set(products.map(p => p.category).filter(Boolean)));
+  }, [products]);
 
   return (
     <div>
@@ -39,125 +57,162 @@ export function AllProducts({ onOpen }: { onOpen: (p: Product) => void }) {
             {filtered.length} item{filtered.length === 1 ? "" : "s"} in the catalog
           </p>
         </div>
+        <button
+          onClick={() => onEdit(null)}
+          className={goldButtonClass}
+        >
+          New Product
+        </button>
       </header>
 
-      <div className="glass mt-6 flex flex-wrap items-center gap-3 p-3">
-        <input
-          className={inputClass + " max-w-64 flex-1"}
-          placeholder="Search name or SKU…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <select className={inputClass + " w-40"} value={branch} onChange={(e) => setBranch(e.target.value)}>
-          <option value="all">All branches</option>
-          {branches.map((b) => (
-            <option key={b} value={b}>
-              {b}
-            </option>
-          ))}
-        </select>
-        <select
-          className={inputClass + " w-40"}
-          value={stockFilter}
-          onChange={(e) => setStockFilter(e.target.value)}
-        >
-          <option value="all">All stock</option>
-          <option value="in">In stock</option>
-          <option value="out">Out of stock</option>
-        </select>
-        <div className="ml-auto flex gap-1 rounded-md border border-border p-1">
-          {(["grid", "list"] as const).map((v) => {
-            const Icon = v === "grid" ? LayoutGrid : List;
-            return (
-              <button
-                key={v}
-                aria-label={`${v} view`}
-                onClick={() => setView(v)}
-                className={
-                  "rounded-sm p-1.5 transition-colors duration-200 " +
-                  (view === v ? "bg-gold/15 text-gold" : "text-muted-foreground hover:text-foreground")
-                }
-              >
-                <Icon className="h-4 w-4" />
-              </button>
-            );
-          })}
+      {/* Toolbar */}
+      <div className="glass mt-6 flex flex-wrap items-center justify-between gap-3 p-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <select className={inputClass + " w-40"} value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+            <option value="all">Select a category</option>
+            {uniqueCategories.map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+          
+          <select className={inputClass + " w-40"} value={productTypeFilter} onChange={(e) => setProductTypeFilter(e.target.value)}>
+            <option value="all">Filter by product type</option>
+            <option value="simple">Simple product</option>
+            <option value="variable">Variable product</option>
+          </select>
+          
+          <select className={inputClass + " w-40"} value={stockFilter} onChange={(e) => setStockFilter(e.target.value)}>
+            <option value="all">Filter by stock status</option>
+            <option value="in">In stock</option>
+            <option value="out">Out of stock</option>
+          </select>
+          <button className="h-9 px-4 rounded border border-border text-xs font-medium hover:bg-white/[0.05] transition-colors">Filter</button>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <input
+            className={inputClass + " w-48"}
+            placeholder="Search products…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <button className="h-9 px-4 rounded border border-border text-xs font-medium hover:bg-white/[0.05] transition-colors">Search products</button>
         </div>
       </div>
 
-      {view === "grid" ? (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtered.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => onOpen(p)}
-              className="glass group overflow-hidden p-0 text-left transition-all duration-300 hover:border-gold/30 hover:shadow-glow-soft"
-            >
-              <img
-                src={p.image}
-                alt={p.name}
-                width={1024}
-                height={768}
-                loading="lazy"
-                className="aspect-4/3 w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-              />
-              <div className="space-y-2 p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-display text-lg leading-tight font-medium">{p.name}</h3>
-                  <StatusBadge tone={totalOf(p) > 0 ? "emerald" : "rust"}>
-                    {totalOf(p) > 0 ? "In Stock" : "Out of Stock"}
-                  </StatusBadge>
-                </div>
-                <p className="font-mono text-xs text-muted-foreground">{p.sku}</p>
-                <p className="font-mono text-sm text-gold">{inr(p.dailyRate)}/day</p>
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {Object.entries(p.stock).map(([b, q]) => (
-                    <BranchPill key={b} branch={b} qty={q} />
-                  ))}
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      ) : (
-        <div className="glass mt-6 divide-y divide-border overflow-hidden">
-          {filtered.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => onOpen(p)}
-              className="flex w-full flex-wrap items-center gap-4 px-4 py-3 text-left transition-colors duration-200 hover:bg-white/[0.05]"
-            >
-              <img
-                src={p.image}
-                alt={p.name}
-                width={64}
-                height={48}
-                loading="lazy"
-                className="h-12 w-16 rounded-md border border-border object-cover"
-              />
-              <div className="min-w-40 flex-1">
-                <h3 className="font-display text-base font-medium">{p.name}</h3>
-                <p className="font-mono text-xs text-muted-foreground">{p.sku}</p>
-              </div>
-              <p className="font-mono text-sm text-gold">{inr(p.dailyRate)}/day</p>
-              <div className="flex flex-wrap gap-1.5">
-                {Object.entries(p.stock).map(([b, q]) => (
-                  <BranchPill key={b} branch={b} qty={q} />
-                ))}
-              </div>
-              <StatusBadge tone={totalOf(p) > 0 ? "emerald" : "rust"}>
-                {totalOf(p) > 0 ? "In Stock" : "Out of Stock"}
-              </StatusBadge>
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Table */}
+      <div className="glass mt-4 overflow-x-auto rounded-lg">
+        <table className="w-full min-w-[1200px] text-left text-sm">
+          <thead>
+            <tr className="border-b border-border bg-white/[0.02]">
+              <th className="w-12 px-4 py-3 text-center"><input type="checkbox" className="rounded border-border bg-transparent focus:ring-gold" /></th>
+              <th className="w-16 px-4 py-3"><ImageIcon className="h-4 w-4 text-muted-foreground" /></th>
+              <th className="px-4 py-3 font-medium text-gold hover:text-gold/80 cursor-pointer">Name</th>
+              <th className="px-4 py-3 font-medium text-gold hover:text-gold/80 cursor-pointer">SKU</th>
+              <th className="px-4 py-3 font-medium">Stock</th>
+              <th className="px-4 py-3 font-medium text-gold hover:text-gold/80 cursor-pointer">Price</th>
+              <th className="px-4 py-3 font-medium">Categories</th>
+              <th className="px-4 py-3 font-medium">Tags</th>
+              <th className="w-12 px-4 py-3 text-center"><Star className="mx-auto h-4 w-4" /></th>
+              <th className="px-4 py-3 font-medium">Brands</th>
+              <th className="px-4 py-3 font-medium text-gold hover:text-gold/80 cursor-pointer">Date</th>
+              <th className="px-4 py-3 font-medium">Location</th>
+              <th className="px-4 py-3 font-medium text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {filtered.map((p) => {
+              const stockNum = totalOf(p);
+              const inStock = stockNum > 0;
+              return (
+                <tr key={p.id} className="group transition-colors hover:bg-white/[0.02]">
+                  <td className="px-4 py-3 text-center">
+                    <input type="checkbox" className="rounded border-border bg-transparent focus:ring-gold" />
+                  </td>
+                  <td className="px-4 py-3">
+                    <img src={p.image} alt="" className="h-10 w-10 rounded border border-border object-cover" />
+                  </td>
+                  <td className="px-4 py-3">
+                    <button onClick={() => onOpen(p)} className="font-medium text-gold hover:underline">
+                      {p.name}
+                    </button>
+                    {p.type === "variable" && (
+                      <span className="ml-2 text-xs text-muted-foreground">— Variable</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {p.sku || "—"}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={inStock ? "text-emerald-500 font-medium" : "text-rust font-medium"}>
+                      {inStock ? `In stock (${stockNum})` : "Out of stock"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {p.type === "simple" ? (
+                      <span className="font-mono text-muted-foreground">{inr(p.dailyRate)}</span>
+                    ) : (
+                      <div className="flex flex-col text-xs font-mono text-muted-foreground">
+                        {p.variations && p.variations.length > 0 ? (
+                          <>
+                            <span>{inr(Math.min(...p.variations.map(v => v.dailyRate)))}</span>
+                            <span>—</span>
+                            <span>{inr(Math.max(...p.variations.map(v => v.dailyRate)))}</span>
+                          </>
+                        ) : (
+                          "—"
+                        )}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-gold hover:underline cursor-pointer">
+                    {p.category || "Uncategorized"}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">—</td>
+                  <td className="px-4 py-3 text-center">
+                    <Star className="mx-auto h-4 w-4 text-muted-foreground opacity-30 hover:opacity-100 hover:text-gold cursor-pointer transition-all" />
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">—</td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">
+                    <div>Published</div>
+                    <div>2026/07/08 at 5:21 pm</div>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-gold">
+                    {branches.map(b => {
+                      const qty = p.type === "simple" ? p.stock[b] : (p.variations || []).reduce((sum, v) => sum + (v.stock[b] || 0), 0);
+                      if (qty && qty > 0) return <div key={b} className="hover:underline cursor-pointer">{b}</div>;
+                      return null;
+                    })}
+                    {stockNum === 0 && <span className="text-muted-foreground">—</span>}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button 
+                      onClick={() => onEdit(p.id)}
+                      className="rounded border border-gold/30 bg-gold/10 px-3 py-1.5 text-xs font-medium text-gold hover:bg-gold/20 transition-colors"
+                    >
+                      Edit
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+            
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={13} className="px-4 py-8 text-center text-muted-foreground">
+                  No products found.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
-      {filtered.length === 0 ? (
-        <p className="mt-10 text-center text-sm text-muted-foreground">
-          No products match these filters.
-        </p>
-      ) : null}
+      <div className="mt-4 flex items-center justify-end text-sm text-muted-foreground">
+        <div>
+          {filtered.length} items
+        </div>
+      </div>
     </div>
   );
 }
