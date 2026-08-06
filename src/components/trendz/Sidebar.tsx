@@ -3,7 +3,7 @@ import { BarChart3, ClipboardList, LayoutGrid, ScanLine, Upload, ChevronDown, Pl
 import { cn } from "@/lib/utils";
 import { useTrendz } from "@/lib/trendz/store";
 
-export type PageKey = "scan" | "products" | "rentals" | "dashboard" | "stock" | "ledger" | "import" | "add-product";
+export type PageKey = "scan" | "products" | "dashboard" | "rentals" | "stock" | "import" | "add-product";
 
 export function Sidebar({
   active,
@@ -20,7 +20,6 @@ export function Sidebar({
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     "Rental Management": true,
     Products: true,
-    Finance: true,
   });
   
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
@@ -39,7 +38,6 @@ export function Sidebar({
       items: [
         { key: "scan" as PageKey, label: "Inventory Search", icon: ScanLine },
         { key: "rentals" as PageKey, label: "All Rentals", icon: ClipboardList },
-        { key: "dashboard" as PageKey, label: "Dashboard", icon: BarChart3 },
       ],
     },
     {
@@ -49,12 +47,6 @@ export function Sidebar({
         { key: "add-product" as PageKey, label: "Add New Product", icon: Plus },
         { key: "stock" as PageKey, label: "Stock Locations", icon: LayoutGrid },
         { key: "import" as PageKey, label: "CSV Import", icon: Upload },
-      ],
-    },
-    {
-      title: "Finance",
-      items: [
-        { key: "ledger" as PageKey, label: "Financial Ledger", icon: BarChart3 },
       ],
     },
   ];
@@ -81,6 +73,28 @@ export function Sidebar({
       </div>
 
       <nav className="flex flex-col gap-4 px-3 pb-8">
+        {/* Top-level standalone items */}
+        <div className="flex flex-col gap-1 mb-2">
+          <button
+            onClick={() => onChange("dashboard")}
+            className={cn(
+              "group relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-all duration-200",
+              active === "dashboard"
+                ? "bg-white/[0.06] text-foreground"
+                : "text-muted-foreground hover:bg-white/[0.03] hover:text-foreground",
+            )}
+          >
+            <span
+              className={cn(
+                "absolute top-1.5 bottom-1.5 left-0 w-[2px] rounded-full transition-all duration-200",
+                active === "dashboard" ? "bg-gold" : "bg-transparent",
+              )}
+            />
+            <BarChart3 className={cn("h-4 w-4", active === "dashboard" && "text-gold")} />
+            Dashboard
+          </button>
+        </div>
+
         {navGroups.map((group) => {
           const isOpen = openGroups[group.title];
           return (

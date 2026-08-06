@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useState, useEffect, type ReactNode } from "react";
 import type { PaymentStatus, Product, Rental, ReturnCondition, StockLocation } from "./types";
 import { nextToken, shiftISO, todayISO } from "./utils";
 
@@ -164,6 +164,28 @@ const initialRentals: Rental[] = [
     notes: "",
   },
   {
+    id: "r4",
+    token: "TRZ-2024-0004",
+    productId: "p1",
+    productName: "Designer Bridal Lehenga",
+    sku: "LEH-001",
+    image: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&q=80",
+    branch: "Branch 1 - Kalpetta",
+    customerName: "Rahul Sharma",
+    customerPhone: "9123456780",
+    qty: 1,
+    rentDate: shiftISO(-10),
+    dueDate: shiftISO(-5),
+    dailyRate: 2499,
+    total: 12495,
+    advance: 12495,
+    paymentStatus: "paid",
+    status: "returned",
+    condition: "good",
+    returnedOn: shiftISO(-4),
+    notes: "Returned on time.",
+  },
+  {
     id: "r3",
     token: "TRZ-2024-0003",
     productId: "p4",
@@ -194,6 +216,7 @@ export interface ImportRow {
 }
 
 interface StoreValue {
+  isLoading: boolean;
   products: Product[];
   rentals: Rental[];
   branches: string[];
@@ -214,10 +237,16 @@ const StoreContext = createContext<StoreValue | null>(null);
 const initialCategories = ["Suit", "Shirt", "Jacket", "Saree", "Jeans", "Tuxedo"];
 
 export function TrendzProvider({ children }: { children: ReactNode }) {
+  const [isLoading, setIsLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [rentals, setRentals] = useState<Rental[]>(initialRentals);
   const [categories, setCategories] = useState<string[]>(initialCategories);
   const [locations, setLocations] = useState<StockLocation[]>(initialLocations);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const branches = useMemo(() => {
     return locations.map(l => l.name);
@@ -347,7 +376,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
             name,
             sku,
             dailyRate: rate,
-            image: bridal.src,
+            image: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&q=80",
             type: "simple",
             category: "Uncategorized",
             stock: { [branch]: qty },
@@ -367,6 +396,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
+      isLoading,
       products,
       rentals,
       branches,
@@ -381,7 +411,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
       importProducts,
       createLocation,
     }),
-    [products, rentals, branches, locations, categories, createProduct, updateProduct, createRental, updateRental, setPaymentStatus, markReturned, importProducts, createLocation],
+    [isLoading, products, rentals, branches, locations, categories, createProduct, updateProduct, createRental, updateRental, setPaymentStatus, markReturned, importProducts, createLocation],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

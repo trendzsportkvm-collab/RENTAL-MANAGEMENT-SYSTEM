@@ -4,6 +4,7 @@ import { useTrendz } from "@/lib/trendz/store";
 import type { Product } from "@/lib/trendz/types";
 import { inr } from "@/lib/trendz/utils";
 import { StatusBadge, inputClass, goldButtonClass } from "../primitives";
+import { TableSkeleton } from "../Skeleton";
 export function AllProducts({ 
   onOpen, 
   onEdit 
@@ -11,7 +12,7 @@ export function AllProducts({
   onOpen: (p: Product) => void;
   onEdit: (id: string | null) => void;
 }) {
-  const { products, branches } = useTrendz();
+  const { products, branches, isLoading } = useTrendz();
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [productTypeFilter, setProductTypeFilter] = useState("all");
@@ -120,8 +121,17 @@ export function AllProducts({
               <th className="px-4 py-3 font-medium text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
-            {filtered.map((p) => {
+          {isLoading ? (
+            <tbody>
+              <tr>
+                <td colSpan={13} className="p-4">
+                  <TableSkeleton rows={10} columns={10} />
+                </td>
+              </tr>
+            </tbody>
+          ) : (
+            <tbody className="divide-y divide-border">
+              {filtered.map((p) => {
               const stockNum = totalOf(p);
               const inStock = stockNum > 0;
               return (
@@ -196,16 +206,14 @@ export function AllProducts({
                 </tr>
               );
             })}
-            
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={13} className="px-4 py-8 text-center text-muted-foreground">
-                  No products found.
-                </td>
-              </tr>
-            )}
           </tbody>
+          )}
         </table>
+        {!isLoading && filtered.length === 0 && (
+          <p className="px-4 py-10 text-center text-sm text-muted-foreground">
+            No products found matching your search.
+          </p>
+        )}
       </div>
 
       <div className="mt-4 flex items-center justify-end text-sm text-muted-foreground">

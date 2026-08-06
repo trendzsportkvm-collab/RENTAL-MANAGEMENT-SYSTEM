@@ -5,9 +5,10 @@ import { useTrendz } from "@/lib/trendz/store";
 import type { Product } from "@/lib/trendz/types";
 import { inr } from "@/lib/trendz/utils";
 import { StockBadge, goldButtonClass } from "../primitives";
+import { Skeleton, TableSkeleton } from "../Skeleton";
 
 export function ScanLookup({ onPutOut }: { onPutOut: (p: Product, branch?: string) => void }) {
-  const { products, rentals, markReturned } = useTrendz();
+  const { products, rentals, markReturned, isLoading } = useTrendz();
   const [query, setQuery] = useState("");
   const [result, setResult] = useState<Product | null>(null);
   const [searched, setSearched] = useState(false);
@@ -35,27 +36,48 @@ export function ScanLookup({ onPutOut }: { onPutOut: (p: Product, branch?: strin
         </p>
       </header>
 
-      <div className="glass mt-8 flex items-center gap-2 p-2 shadow-glow-soft">
-        <Search className="ml-2 h-4 w-4 text-muted-foreground" />
-        <input
-          autoFocus
-          className="flex-1 bg-transparent px-1 py-2 font-mono text-sm outline-none placeholder:text-muted-foreground/60"
-          placeholder="SU-001"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && search()}
-        />
-        <button
-          onClick={search}
-          aria-label="Scan barcode"
-          className="rounded-md border border-gold/35 bg-gold/10 p-2.5 text-gold transition-all duration-200 hover:bg-gold/20 hover:shadow-glow-gold"
-        >
-          <Barcode className="h-4 w-4" />
-        </button>
-      </div>
+      {isLoading ? (
+        <>
+          <div className="glass mt-8 p-3 shadow-glow-soft">
+            <Skeleton className="h-10 w-full rounded" />
+          </div>
+          <div className="glass mt-6 p-5">
+            <div className="flex gap-5">
+              <Skeleton className="h-30 w-30 shrink-0 rounded-lg" />
+              <div className="flex-1 space-y-3">
+                <Skeleton className="h-8 w-2/3" />
+                <Skeleton className="h-4 w-1/3" />
+                <Skeleton className="h-6 w-1/4" />
+              </div>
+            </div>
+            <div className="mt-8">
+              <TableSkeleton rows={2} columns={2} />
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="glass mt-8 flex items-center gap-2 p-2 shadow-glow-soft">
+            <Search className="ml-2 h-4 w-4 text-muted-foreground" />
+            <input
+              autoFocus
+              className="flex-1 bg-transparent px-1 py-2 font-mono text-sm outline-none placeholder:text-muted-foreground/60"
+              placeholder="SU-001"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && search()}
+            />
+            <button
+              onClick={search}
+              aria-label="Scan barcode"
+              className="rounded-md border border-gold/35 bg-gold/10 p-2.5 text-gold transition-all duration-200 hover:bg-gold/20 hover:shadow-glow-gold"
+            >
+              <Barcode className="h-4 w-4" />
+            </button>
+          </div>
 
-      {result ? (
-        <article className="glass mt-6 p-5">
+          {result ? (
+            <article className="glass mt-6 p-5">
           <div className="flex flex-wrap gap-5">
             <img
               src={result.image}
@@ -133,7 +155,9 @@ export function ScanLookup({ onPutOut }: { onPutOut: (p: Product, branch?: strin
         <p className="mt-8 text-center text-sm text-muted-foreground">
           No product matched that search.
         </p>
-      ) : null}
+          ) : null}
+        </>
+      )}
     </div>
   );
 }

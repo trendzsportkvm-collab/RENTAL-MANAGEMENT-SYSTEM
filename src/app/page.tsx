@@ -9,8 +9,7 @@ import { EditRentalModal } from "@/components/trendz/EditRentalModal";
 import { ScanLookup } from "@/components/trendz/pages/ScanLookup";
 import { AllProducts } from "@/components/trendz/pages/AllProducts";
 import { AllRentals } from "@/components/trendz/pages/AllRentals";
-import { RentalsDashboard } from "@/components/trendz/pages/RentalsDashboard";
-import { FinancialLedger } from "@/components/trendz/pages/FinancialLedger";
+import { Dashboard } from "@/components/trendz/pages/Dashboard";
 import { CsvImport } from "@/components/trendz/pages/CsvImport";
 import { StockLocations } from "@/components/trendz/pages/StockLocations";
 import { AddProduct } from "@/components/trendz/pages/AddProduct";
@@ -19,7 +18,7 @@ import type { Product, Rental } from "@/lib/trendz/types";
 import { Menu } from "lucide-react";
 
 function TrendzApp() {
-  const [page, setPage] = useState<PageKey>("scan");
+  const [page, setPage] = useState<PageKey>("dashboard");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [rentalProduct, setRentalProduct] = useState<Product | null>(null);
   const [confirmed, setConfirmed] = useState<Rental | null>(null);
@@ -65,9 +64,9 @@ function TrendzApp() {
       />
       
       <main className="md:ml-64 px-4 md:px-8 py-6 md:py-10 pt-20 md:pt-10">
+        {page === "dashboard" ? <Dashboard onEdit={setEditing} /> : null}
         {page === "scan" ? <ScanLookup onPutOut={(p) => setRentalProduct(p)} /> : null}
         {page === "rentals" ? <AllRentals onOpen={setStatusProduct} /> : null}
-        {page === "dashboard" ? <RentalsDashboard onEdit={setEditing} /> : null}
         {page === "products" ? (
           <AllProducts 
             onOpen={setStatusProduct} 
@@ -79,7 +78,6 @@ function TrendzApp() {
         ) : null}
         {page === "stock" ? <StockLocations /> : null}
         {page === "import" ? <CsvImport /> : null}
-        {page === "ledger" ? <FinancialLedger /> : null}
         {page === "add-product" ? (
           <AddProduct 
             productToEditId={productToEditId} 

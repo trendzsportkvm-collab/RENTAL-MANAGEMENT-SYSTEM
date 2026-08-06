@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { EyeOff, MapPin } from "lucide-react";
 import { useTrendz } from "@/lib/trendz/store";
-import { inputClass, labelClass } from "../primitives";
+import { inputClass, labelClass, StatusBadge } from "../primitives";
 import type { StockLocation } from "@/lib/trendz/types";
+import { Skeleton, TableSkeleton } from "../Skeleton";
 
 export function StockLocations() {
-  const { locations, products, createLocation } = useTrendz();
+  const { locations, products, createLocation, isLoading } = useTrendz();
 
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
@@ -54,9 +55,28 @@ export function StockLocations() {
         <h1 className="font-display text-3xl font-semibold">Location</h1>
       </header>
 
-      <div className="flex flex-col gap-8 lg:flex-row">
-        {/* Left Column - Form */}
-        <div className="w-full lg:w-1/3">
+      {isLoading ? (
+        <div className="flex flex-col gap-8 lg:flex-row">
+          <div className="w-full lg:w-1/3 space-y-4">
+            <Skeleton className="h-6 w-1/3 mb-4" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-24 mt-6" />
+          </div>
+          <div className="flex-1 space-y-4">
+            <Skeleton className="h-6 w-1/3 mb-4" />
+            <TableSkeleton rows={4} columns={5} />
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-8 lg:flex-row">
+          {/* Left Column - Form */}
+          <div className="w-full lg:w-1/3">
           <h2 className="mb-4 font-display text-lg font-medium">Add New Item</h2>
           
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -231,6 +251,7 @@ export function StockLocations() {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useTrendz } from "@/lib/trendz/store";
 import type { Product } from "@/lib/trendz/types";
 import { inr } from "@/lib/trendz/utils";
 import { BranchPill, StatusBadge, inputClass } from "../primitives";
+import { GridSkeleton, TableSkeleton } from "../Skeleton";
 
 interface FlattenedRental {
   id: string;
@@ -17,7 +18,7 @@ interface FlattenedRental {
 }
 
 export function AllRentals({ onOpen }: { onOpen?: (p: Product) => void }) {
-  const { products, branches } = useTrendz();
+  const { products, branches, isLoading } = useTrendz();
   const [query, setQuery] = useState("");
   const [branch, setBranch] = useState("all");
   const [stockFilter, setStockFilter] = useState("all");
@@ -106,122 +107,132 @@ export function AllRentals({ onOpen }: { onOpen?: (p: Product) => void }) {
           <option value="out">Out of stock</option>
         </select>
         <div className="ml-auto flex gap-1 rounded-md border border-border p-1">
-          {(["grid", "list"] as const).map((v) => {
-            const Icon = v === "grid" ? LayoutGrid : List;
-            return (
-              <button
-                key={v}
-                aria-label={`${v} view`}
-                onClick={() => setView(v)}
-                className={
-                  "rounded-sm p-1.5 transition-colors duration-200 " +
-                  (view === v ? "bg-gold/15 text-gold" : "text-muted-foreground hover:text-foreground")
-                }
-              >
-                <Icon className="h-4 w-4" />
-              </button>
-            );
-          })}
+          <button
+            onClick={() => setView("grid")}
+            className={`rounded-md p-1.5 transition-colors ${view === "grid" ? "bg-white/10 text-foreground" : "text-muted-foreground hover:bg-white/5"}`}
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setView("list")}
+            className={`rounded-md p-1.5 transition-colors ${view === "list" ? "bg-white/10 text-foreground" : "text-muted-foreground hover:bg-white/5"}`}
+          >
+            <List className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
-      {view === "grid" ? (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtered.map((r) => (
-            <button
-              key={r.id}
-              onClick={() => {
-                const product = products.find(p => p.id === r.productId);
-                if (product) onOpen?.(product);
-              }}
-              className="glass group overflow-hidden p-0 text-left transition-all duration-300 hover:border-gold/30 hover:shadow-glow-soft cursor-pointer w-full"
-            >
-              <img
-                src={r.image}
-                alt={r.name}
-                width={1024}
-                height={768}
-                loading="lazy"
-                className="aspect-4/3 w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-              />
-              <div className="space-y-2 p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-display text-lg leading-tight font-medium">{r.name}</h3>
+      {isLoading ? (
+        view === "grid" ? (
+          <div className="mt-6">
+            <GridSkeleton count={10} />
+          </div>
+        ) : (
+          <div className="glass mt-6 p-4">
+            <TableSkeleton rows={8} columns={5} />
+          </div>
+        )
+      ) : (
+        <>
+          {view === "grid" ? (
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+              {filtered.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => {
+                    const product = products.find(p => p.id === r.productId);
+                    if (product) onOpen?.(product);
+                  }}
+                  className="glass group overflow-hidden p-0 text-left transition-all duration-300 hover:border-gold/30 hover:shadow-glow-soft cursor-pointer w-full"
+                >
+                  <img
+                    src={r.image}
+                    alt={r.name}
+                    width={1024}
+                    height={768}
+                    loading="lazy"
+                    className="aspect-4/3 w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                  />
+                  <div className="space-y-2 p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-display text-lg leading-tight font-medium">{r.name}</h3>
+                      <StatusBadge tone={totalOf(r) > 0 ? "emerald" : "rust"}>
+                        {totalOf(r) > 0 ? "In Stock" : "Out of Stock"}
+                      </StatusBadge>
+                    </div>
+                    <p className="font-mono text-xs text-muted-foreground">{r.sku}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-mono text-sm text-gold">{inr(r.dailyRate)}/day</p>
+                      {r.type === "variable" && (
+                        <span className="rounded bg-white/[0.05] px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                          Variation
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {branches.map((b) => {
+                        const q = r.stock[b] || 0;
+                        if (q > 0) return <BranchPill key={b} branch={b} qty={q} />;
+                        return null;
+                      })}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="glass mt-6 divide-y divide-border overflow-hidden">
+              {filtered.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => {
+                    const product = products.find(p => p.id === r.productId);
+                    if (product) onOpen?.(product);
+                  }}
+                  className="flex w-full flex-wrap items-center gap-4 px-4 py-3 text-left transition-colors duration-200 hover:bg-white/[0.05] cursor-pointer"
+                >
+                  <img
+                    src={r.image}
+                    alt={r.name}
+                    width={64}
+                    height={48}
+                    loading="lazy"
+                    className="h-12 w-16 rounded-md border border-border object-cover"
+                  />
+                  <div className="min-w-40 flex-1">
+                    <h3 className="font-display text-base font-medium">
+                      {r.name}{" "}
+                      {r.type === "variable" && (
+                        <span className="ml-2 rounded bg-white/[0.05] px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                          Variation
+                        </span>
+                      )}
+                    </h3>
+                    <p className="font-mono text-xs text-muted-foreground">{r.sku}</p>
+                  </div>
+                  <p className="font-mono text-sm text-gold">{inr(r.dailyRate)}/day</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {branches.map((b) => {
+                      const q = r.stock[b] || 0;
+                      if (q > 0) return <BranchPill key={b} branch={b} qty={q} />;
+                      return null;
+                    })}
+                  </div>
                   <StatusBadge tone={totalOf(r) > 0 ? "emerald" : "rust"}>
                     {totalOf(r) > 0 ? "In Stock" : "Out of Stock"}
                   </StatusBadge>
-                </div>
-                <p className="font-mono text-xs text-muted-foreground">{r.sku}</p>
-                <div className="flex items-center gap-2">
-                  <p className="font-mono text-sm text-gold">{inr(r.dailyRate)}/day</p>
-                  {r.type === "variable" && (
-                    <span className="rounded bg-white/[0.05] px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
-                      Variation
-                    </span>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {branches.map((b) => {
-                    const q = r.stock[b] || 0;
-                    if (q > 0) return <BranchPill key={b} branch={b} qty={q} />;
-                    return null;
-                  })}
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      ) : (
-        <div className="glass mt-6 divide-y divide-border overflow-hidden">
-          {filtered.map((r) => (
-            <button
-              key={r.id}
-              onClick={() => {
-                const product = products.find(p => p.id === r.productId);
-                if (product) onOpen?.(product);
-              }}
-              className="flex w-full flex-wrap items-center gap-4 px-4 py-3 text-left transition-colors duration-200 hover:bg-white/[0.05] cursor-pointer"
-            >
-              <img
-                src={r.image}
-                alt={r.name}
-                width={64}
-                height={48}
-                loading="lazy"
-                className="h-12 w-16 rounded-md border border-border object-cover"
-              />
-              <div className="min-w-40 flex-1">
-                <h3 className="font-display text-base font-medium">
-                  {r.name}{" "}
-                  {r.type === "variable" && (
-                    <span className="ml-2 rounded bg-white/[0.05] px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
-                      Variation
-                    </span>
-                  )}
-                </h3>
-                <p className="font-mono text-xs text-muted-foreground">{r.sku}</p>
-              </div>
-              <p className="font-mono text-sm text-gold">{inr(r.dailyRate)}/day</p>
-              <div className="flex flex-wrap gap-1.5">
-                {branches.map((b) => {
-                  const q = r.stock[b] || 0;
-                  if (q > 0) return <BranchPill key={b} branch={b} qty={q} />;
-                  return null;
-                })}
-              </div>
-              <StatusBadge tone={totalOf(r) > 0 ? "emerald" : "rust"}>
-                {totalOf(r) > 0 ? "In Stock" : "Out of Stock"}
-              </StatusBadge>
-            </button>
-          ))}
-        </div>
-      )}
+                </button>
+              ))}
+            </div>
+          )}
 
-      {filtered.length === 0 ? (
-        <p className="mt-10 text-center text-sm text-muted-foreground">
-          No rentals match these filters.
-        </p>
-      ) : null}
+          {filtered.length === 0 ? (
+            <p className="px-4 py-10 text-center text-sm text-muted-foreground">
+              No individual items found.
+            </p>
+          ) : null}
+        </>
+      )}
     </div>
   );
 }
