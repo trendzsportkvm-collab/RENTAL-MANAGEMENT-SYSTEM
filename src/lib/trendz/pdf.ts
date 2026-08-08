@@ -10,7 +10,7 @@ export async function generateLedgerPDF(
 ) {
   // Build the React element and pipe it through @react-pdf/renderer
   const element = createElement(LedgerDocument, { rows, filters });
-  const blob = await pdf(element).toBlob();
+  const blob = await pdf(element as any).toBlob();
 
   // Trigger a download
   const url = URL.createObjectURL(blob);

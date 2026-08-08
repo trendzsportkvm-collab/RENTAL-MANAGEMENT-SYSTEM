@@ -118,12 +118,12 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
             productId: item.product_id || "",
             productName: item.product_name || "Unknown Item",
             variationId: item.variation_id || undefined,
-            variationName: item.product_variations?.name || undefined,
+            variationName: (item.product_variations as any)?.name || (item.product_variations as any)?.[0]?.name || undefined,
             sku: item.sku || "",
             image: item.image_url || "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&q=80",
-            branch: r.branches?.name || "",
-            customerName: r.customers?.full_name || "",
-            customerPhone: r.customers?.phone || "",
+            branch: (r.branches as any)?.name || (r.branches as any)?.[0]?.name || "",
+            customerName: (r.customers as any)?.full_name || (r.customers as any)?.[0]?.full_name || "",
+            customerPhone: (r.customers as any)?.phone || (r.customers as any)?.[0]?.phone || "",
             qty: item.qty || 1,
             rentDate: r.rent_date,
             dueDate: r.due_date,
@@ -215,7 +215,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
             if (stockRows.length > 0) {
               const { error: stockErr } = await supabase
                 .from("product_stock")
-                .insert(stockRows);
+                .insert(stockRows as any[]);
               if (stockErr) console.error("Failed to save stock:", stockErr);
             }
           }
@@ -251,7 +251,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
                 })
                 .filter(Boolean);
               if (varStockRows.length > 0) {
-                await supabase.from("product_stock").insert(varStockRows);
+                await supabase.from("product_stock").insert(varStockRows as any[]);
               }
             }
           }
@@ -298,7 +298,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
               return branch ? { product_id: id, branch_id: branch.id, quantity: qty } : null;
             }).filter(Boolean);
             
-          if (stockRows.length > 0) await supabase.from("product_stock").insert(stockRows);
+          if (stockRows.length > 0) await supabase.from("product_stock").insert(stockRows as any[]);
         }
         
         if (patch.type === 'variable' && patch.variations) {
@@ -350,7 +350,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
                 }).filter(Boolean);
                 
               if (varStockRows.length > 0) {
-                const { error: stockErr } = await supabase.from("product_stock").insert(varStockRows);
+                const { error: stockErr } = await supabase.from("product_stock").insert(varStockRows as any[]);
                 if (stockErr) console.error("Stock insert error for", v.sku, stockErr);
               }
             } catch (innerErr) {
