@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "@/lib/trendz/AuthContext";
 import "@/styles.css";
 
 export const metadata: Metadata = {
@@ -28,8 +29,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        {children}
-        <Toaster position="top-right" duration={3000} />
+        <AuthProvider>
+          {children}
+          <Toaster position="top-right" duration={3000} />
+        </AuthProvider>
       </body>
     </html>
   );

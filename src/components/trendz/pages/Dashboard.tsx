@@ -17,6 +17,8 @@ import {
 } from "../primitives";
 import { ReturnConfirm } from "../ReturnConfirm";
 import { TableSkeleton, SummaryCardsSkeleton } from "../Skeleton";
+import { useAuth } from "@/lib/trendz/AuthContext";
+import { generateLedgerPDF } from "@/lib/trendz/pdf";
 
 const monthStart = () => {
   const d = new Date();
@@ -35,11 +37,13 @@ type SortKey = "rentDate" | "dueDate" | "customerName" | "token" | "total";
 
 export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
   const { rentals, branches, setPaymentStatus, markReturned, isLoading } = useTrendz();
+  const { profile } = useAuth();
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"rental" | "ledger">("rental");
   const [showFilters, setShowFilters] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("rentDate");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   const initial: Filters = {
     from: "", // Default to no date filter so we see active by default easily, or keep it to month start
@@ -66,7 +70,14 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
 
     // Apply tab-specific status filter
     if (activeTab === "rental") {
-      filtered = filtered.filter(r => r.status === "out");
+      filtered = filtered.filter(r => {
+        if (r.status === "out") return true;
+        if (r.status === "returned" && r.returnedOn) {
+          const daysSinceReturn = (new Date().getTime() - new Date(r.returnedOn).getTime()) / 86400000;
+          return daysSinceReturn <= 30;
+        }
+        return false;
+      });
     } else if (applied.status !== "all") {
       filtered = filtered.filter(r => r.status === applied.status);
     }
@@ -89,35 +100,15 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
   const overdue = active.filter(isOverdue);
 
   const revenue = rows.reduce((a, r) => a + r.total, 0);
-  const collected = rows.reduce((a, r) => a + r.advance, 0);
+  const collected = rows.reduce((a, r) => {
+    if (r.paymentStatus === "paid") return a + r.total;
+    if (r.paymentStatus === "partial") return a + r.advance;
+    return a;
+  }, 0);
   const pending = rows.reduce((a, r) => a + balanceOf(r), 0);
   const overdueBalance = rows.filter(isOverdue).reduce((a, r) => a + balanceOf(r), 0);
 
-  const exportCSV = () => {
-    const header = [
-      "Token","Customer","Phone","Item","SKU","Branch","Qty","Days","Rate/Day","Total","Advance","Balance","Payment","Status","Rented","Due",
-    ];
-    const body = rows.map((r) => [
-      r.token,
-      r.customerName,
-      r.customerPhone,
-      r.productName,
-      r.sku,
-      r.branch,
-      r.qty,
-      daysBetween(r.rentDate, r.dueDate),
-      r.dailyRate,
-      r.total,
-      r.advance,
-      balanceOf(r),
-      paymentLabel(r.paymentStatus),
-      r.status === "returned" ? "Returned" : "Out",
-      r.rentDate,
-      r.dueDate,
-    ]);
-    downloadCSV(`trendz-dashboard-${todayISO()}.csv`, [header, ...body]);
-    toast.success("Ledger exported", { description: `${rows.length} rows` });
-  };
+  // CSV export removed as per user request
 
   return (
     <div>
@@ -130,12 +121,14 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
           >
             Rental Dashboard
           </button>
-          <button
-            onClick={() => setActiveTab("ledger")}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === "ledger" ? "border-b-2 border-gold text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-          >
-            Financial Ledger
-          </button>
+          {(profile?.role === "super_admin" || profile?.role === "owner") && (
+            <button
+              onClick={() => setActiveTab("ledger")}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === "ledger" ? "border-b-2 border-gold text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              Financial Ledger
+            </button>
+          )}
         </div>
       </header>
 
@@ -189,8 +182,20 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
             <Filter className="h-4 w-4 mr-2" /> Filter
           </button>
           {activeTab === "ledger" && (
-            <button className={ghostButtonClass + " py-1.5"} onClick={exportCSV}>
-              <Download className="h-4 w-4 mr-2" /> Export
+            <button
+              className={ghostButtonClass + " py-1.5 px-3"}
+              disabled={pdfLoading}
+              onClick={async () => {
+                setPdfLoading(true);
+                try {
+                  await generateLedgerPDF(rows, applied);
+                } finally {
+                  setPdfLoading(false);
+                }
+              }}
+            >
+              <Download className={"h-4 w-4 mr-2" + (pdfLoading ? " animate-spin" : "")} />
+              {pdfLoading ? "Generating…" : "Export PDF"}
             </button>
           )}
         </div>
@@ -262,10 +267,10 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
           </div>
         ) : activeTab === "rental" ? (
           /* ── RENTAL DASHBOARD TABLE ── operational focus ── */
-          <table className="w-full min-w-3xl text-sm">
+          <table className="w-full min-w-[1000px] text-sm">
             <thead className="sticky top-0 z-10 bg-surface-2/95 backdrop-blur">
               <tr className="text-left text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
-                {["Token", "Customer", "Item", "Branch", "Qty", "Due Date", "Actions"].map((h) => (
+                {["Token", "Customer", "Item", "Branch", "Qty", "Due Date", "Status", "Actions"].map((h) => (
                   <th key={h} className="px-3 py-3 font-medium whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -309,9 +314,14 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
                       )}
                     </td>
                     <td className="px-3 py-2.5">
+                      <RentalStatusBadge status={r.status} />
+                    </td>
+                    <td className="px-3 py-2.5">
                       <div className="relative flex items-center gap-2">
                         <button className={ghostButtonClass + " border-indigo/40 text-indigo"} onClick={() => onEdit(r)}>Edit</button>
-                        <button className={ghostButtonClass} onClick={() => setConfirmId(r.id)}>Return</button>
+                        {r.status === "out" && (
+                          <button className={ghostButtonClass} onClick={() => setConfirmId(r.id)}>Return</button>
+                        )}
                         <a href={waLink(r.customerPhone, waReminder(r))} target="_blank" rel="noreferrer"
                           aria-label="WhatsApp reminder"
                           className="rounded-md border border-emerald/40 bg-emerald/10 p-1.5 text-emerald transition-colors duration-200 hover:bg-emerald/20">
@@ -336,7 +346,7 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
           </table>
         ) : (
           /* ── FINANCIAL LEDGER TABLE ── money focus ── */
-          <table className="w-full min-w-5xl text-sm">
+          <table className="w-full min-w-[1200px] text-sm">
             <thead className="sticky top-0 z-10 bg-surface-2/95 backdrop-blur">
               <tr className="text-left text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
                 {["Token", "Customer", "Item", "Period", "Total", "Advance", "Balance", "Payment", "Status"].map((h) => (

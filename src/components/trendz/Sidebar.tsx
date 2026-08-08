@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { BarChart3, ClipboardList, LayoutGrid, ScanLine, Upload, ChevronDown, Plus, Tag } from "lucide-react";
+import { BarChart3, ClipboardList, LayoutGrid, ScanLine, Upload, ChevronDown, Plus, Tag, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTrendz } from "@/lib/trendz/store";
+import { useAuth } from "@/lib/trendz/AuthContext";
 
 export type PageKey = "scan" | "products" | "dashboard" | "rentals" | "stock" | "import" | "add-product";
 
@@ -17,6 +18,7 @@ export function Sidebar({
   onClose?: () => void;
 }) {
   const { categories } = useTrendz();
+  const { profile, signOut } = useAuth();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     "Rental Management": true,
     Products: true,
@@ -43,11 +45,11 @@ export function Sidebar({
     {
       title: "Products",
       items: [
-        { key: "products" as PageKey, label: "All Products", icon: LayoutGrid },
-        { key: "add-product" as PageKey, label: "Add New Product", icon: Plus },
-        { key: "stock" as PageKey, label: "Stock Locations", icon: LayoutGrid },
-        { key: "import" as PageKey, label: "CSV Import", icon: Upload },
-      ],
+        { key: "products" as PageKey, label: "All Products", icon: LayoutGrid, adminOnly: false },
+        { key: "add-product" as PageKey, label: "Add New Product", icon: Plus, adminOnly: true },
+        { key: "stock" as PageKey, label: "Stock Locations", icon: LayoutGrid, adminOnly: true },
+        { key: "import" as PageKey, label: "CSV Import", icon: Upload, adminOnly: true },
+      ].filter(item => !item.adminOnly || profile?.role === "super_admin" || profile?.role === "owner"),
     },
   ];
 
@@ -150,10 +152,26 @@ export function Sidebar({
       </nav>
 
       <div className="mt-auto px-6 pb-6 text-[11px] leading-relaxed text-muted-foreground">
-        <p className="text-foreground/80">Kalpetta · Bathery</p>
-        <p className="mt-1">Wayanad, Kerala</p>
+        {profile ? (
+          <div className="mb-4">
+            <p className="text-foreground/80 font-medium">{profile.full_name}</p>
+            <p className="mt-1 uppercase tracking-widest text-[9px] text-gold">{profile.role}</p>
+            <button 
+              onClick={signOut}
+              className="mt-3 flex items-center gap-2 text-rust hover:text-rust/80 transition-colors"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Sign Out
+            </button>
+          </div>
+        ) : (
+          <>
+            <p className="text-foreground/80">Kalpetta · Bathery</p>
+            <p className="mt-1">Wayanad, Kerala</p>
+          </>
+        )}
         <p className="mt-3 font-mono text-[10px] text-muted-foreground/70">
-          Staff panel v1.0
+          Staff panel v1.1
         </p>
       </div>
     </aside>

@@ -5,26 +5,24 @@ import { useTrendz, type ImportRow } from "@/lib/trendz/store";
 import { downloadCSV } from "@/lib/trendz/utils";
 import { ghostButtonClass, goldButtonClass } from "../primitives";
 
-const TEMPLATE: (string | number)[][] = [
-  ["name", "sku", "daily_rate", "branch_name", "quantity"],
-  ["Bridal Suit Red", "BS-RED-001", 500, "Kalpetta", 3],
-  ["Bridal Suit Red", "BS-RED-001", 500, "Bathery", 2],
-  ["Bridal Gown White", "GWN-WHT-001", 2000, "Kalpetta", 1],
-];
+import Papa from "papaparse";
 
-const parseCSV = (text: string): ImportRow[] => {
-  const lines = text.trim().split(/\r?\n/);
-  const header = lines[0].split(",").map((h) => h.trim().toLowerCase());
-  return lines.slice(1).map((line) => {
-    const cells = line.split(",");
-    const row: Record<string, string> = {};
-    header.forEach((h, i) => (row[h] = (cells[i] ?? "").trim()));
-    return row as unknown as ImportRow;
+
+
+const parseCSV = async (file: File): Promise<ImportRow[]> => {
+  return new Promise((resolve, reject) => {
+    Papa.parse<ImportRow>(file, {
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: (header) => header.trim().toLowerCase(),
+      complete: (results) => resolve(results.data),
+      error: (error) => reject(error),
+    });
   });
 };
 
 export function CsvImport() {
-  const { importProducts } = useTrendz();
+  const { importProducts, locations } = useTrendz();
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const [result, setResult] = useState<{ created: number; updated: number; errors: string[] } | null>(
@@ -44,13 +42,16 @@ export function CsvImport() {
 
   const runImport = async () => {
     if (!file) return;
-    const text = await file.text();
-    const rows = parseCSV(text);
-    const res = importProducts(rows);
-    setResult(res);
+    try {
+      const rows = await parseCSV(file);
+      const res = await importProducts(rows);
+      setResult(res);
     toast.success("Import finished", {
       description: `${res.created} created · ${res.updated} updated · ${res.errors.length} errors`,
     });
+    } catch (err) {
+      toast.error("Failed to parse CSV");
+    }
   };
 
   return (
@@ -69,16 +70,35 @@ export function CsvImport() {
             <p className="mt-1 text-xs text-muted-foreground">
               Required columns:{" "}
               <span className="font-mono text-foreground">
-                name, sku, daily_rate, branch_name, quantity
+                Type, Name, SKU, Category, Daily Rate
               </span>
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              To set stock in multiple branches, add one row per branch for the same SKU.
+              For variable products, add <span className="font-mono text-foreground">Variation Name</span> and <span className="font-mono text-foreground">Variation SKU</span>.
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Optional columns: Description, Image URL (Paste external links here to save Supabase Storage!)
             </p>
           </div>
           <button
             className={ghostButtonClass + " py-2"}
-            onClick={() => downloadCSV("trendz-import-template.csv", TEMPLATE)}
+            onClick={() => {
+              const headers = ["Type", "Name", "SKU", "Variation Name", "Variation SKU", "Category", "Daily Rate", "Description", "Image URL"];
+              const branches = locations.filter(l => l.enabled);
+              branches.forEach(b => headers.push(`Stock: ${b.name}`));
+              
+              const simpleRow = ["simple", "Red Bridal Lehenga", "LEH-001", "", "", "Bridal", 2499, "Heavy embroidery", ""];
+              const varRow1 = ["variable", "Groom Sherwani", "SHR-001", "Size M", "SHR-001-M", "Mens", 1899, "", ""];
+              const varRow2 = ["variable", "Groom Sherwani", "SHR-001", "Size L", "SHR-001-L", "Mens", 1899, "", ""];
+              
+              branches.forEach(() => {
+                simpleRow.push("10");
+                varRow1.push("5");
+                varRow2.push("2");
+              });
+              
+              downloadCSV("trendz-import-template.csv", [headers, simpleRow, varRow1, varRow2]);
+            }}
           >
             <Download className="h-3.5 w-3.5" /> Download Template
           </button>

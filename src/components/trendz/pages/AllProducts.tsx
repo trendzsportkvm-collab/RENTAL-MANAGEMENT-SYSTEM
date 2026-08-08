@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Star, Image as ImageIcon } from "lucide-react";
+import { Star, Image as ImageIcon, Trash2 } from "lucide-react";
 import { useTrendz } from "@/lib/trendz/store";
 import type { Product } from "@/lib/trendz/types";
 import { inr } from "@/lib/trendz/utils";
@@ -12,7 +12,7 @@ export function AllProducts({
   onOpen: (p: Product) => void;
   onEdit: (id: string | null) => void;
 }) {
-  const { products, branches, isLoading } = useTrendz();
+  const { products, branches, isLoading, deleteProduct } = useTrendz();
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [productTypeFilter, setProductTypeFilter] = useState("all");
@@ -196,12 +196,25 @@ export function AllProducts({
                     {stockNum === 0 && <span className="text-muted-foreground">—</span>}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button 
-                      onClick={() => onEdit(p.id)}
-                      className="rounded border border-gold/30 bg-gold/10 px-3 py-1.5 text-xs font-medium text-gold hover:bg-gold/20 transition-colors"
-                    >
-                      Edit
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button 
+                        onClick={() => onEdit(p.id)}
+                        className="rounded border border-gold/30 bg-gold/10 px-3 py-1.5 text-xs font-medium text-gold hover:bg-gold/20 transition-colors"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Are you sure you want to delete ${p.name}?`)) {
+                            deleteProduct(p.id);
+                          }
+                        }}
+                        className="rounded border border-red-500/30 bg-red-500/10 p-1.5 text-red-500 hover:bg-red-500/20 transition-colors"
+                        title="Delete product"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );

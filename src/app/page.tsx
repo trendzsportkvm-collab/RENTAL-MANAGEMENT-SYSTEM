@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar, type PageKey } from "@/components/trendz/Sidebar";
 import { RentalFormModal } from "@/components/trendz/RentalFormModal";
 import { WhatsAppModal } from "@/components/trendz/WhatsAppModal";
@@ -18,17 +18,25 @@ import type { Product, Rental } from "@/lib/trendz/types";
 import { Menu } from "lucide-react";
 
 function TrendzApp() {
-  const [page, setPage] = useState<PageKey>("dashboard");
+  const [page, setPage] = useState<PageKey>("scan");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [rentalProduct, setRentalProduct] = useState<Product | null>(null);
+  const [rentalBranch, setRentalBranch] = useState<string | undefined>();
+  const [rentalVariationId, setRentalVariationId] = useState<string | undefined>();
   const [confirmed, setConfirmed] = useState<Rental | null>(null);
   const [statusProduct, setStatusProduct] = useState<Product | null>(null);
   const [editing, setEditing] = useState<Rental | null>(null);
   
   const [productToEditId, setProductToEditId] = useState<string | null>(null);
 
+  useEffect(() => {
+    const saved = localStorage.getItem("trendz_last_page") as PageKey;
+    if (saved) setPage(saved);
+  }, []);
+
   const handlePageChange = (p: PageKey) => {
     setPage(p);
+    localStorage.setItem("trendz_last_page", p);
     if (p === "add-product") {
       setProductToEditId(null);
     }
@@ -40,7 +48,9 @@ function TrendzApp() {
       {/* Mobile Top Bar */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-surface border-b border-border z-20 flex items-center px-4">
         <button
-          onClick={() => setIsMobileMenuOpen(true)}
+          onClick={() => {
+            setIsMobileMenuOpen(true);
+          }}
           className="p-2 -ml-2 text-foreground hover:bg-black/5 rounded-md"
         >
           <Menu className="w-5 h-5" />
@@ -65,7 +75,11 @@ function TrendzApp() {
       
       <main className="md:ml-64 px-4 md:px-8 py-6 md:py-10 pt-20 md:pt-10">
         {page === "dashboard" ? <Dashboard onEdit={setEditing} /> : null}
-        {page === "scan" ? <ScanLookup onPutOut={(p) => setRentalProduct(p)} /> : null}
+        {page === "scan" ? <ScanLookup onPutOut={(p, branch, variationId) => {
+          setRentalBranch(branch);
+          setRentalVariationId(variationId);
+          setRentalProduct(p);
+        }} /> : null}
         {page === "rentals" ? <AllRentals onOpen={setStatusProduct} /> : null}
         {page === "products" ? (
           <AllProducts 
@@ -81,7 +95,7 @@ function TrendzApp() {
         {page === "add-product" ? (
           <AddProduct 
             productToEditId={productToEditId} 
-            onClose={() => setPage("products")} 
+            onClose={() => handlePageChange("products")} 
           />
         ) : null}
       </main>
@@ -89,10 +103,19 @@ function TrendzApp() {
       <RentalFormModal
         open={!!rentalProduct}
         product={rentalProduct}
-        onClose={() => setRentalProduct(null)}
+        defaultBranch={rentalBranch}
+        initialVariationId={rentalVariationId}
+        onClose={() => {
+          setRentalProduct(null);
+          setRentalBranch(undefined);
+          setRentalVariationId(undefined);
+        }}
         onCreated={(r) => {
           setRentalProduct(null);
+          setRentalBranch(undefined);
+          setRentalVariationId(undefined);
           setConfirmed(r);
+          handlePageChange("dashboard");
         }}
       />
       <WhatsAppModal rental={confirmed} onClose={() => setConfirmed(null)} />

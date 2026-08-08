@@ -10,12 +10,14 @@ export function RentalFormModal({
   open,
   product,
   defaultBranch,
+  initialVariationId,
   onClose,
   onCreated,
 }: {
   open: boolean;
   product: Product | null;
   defaultBranch?: string;
+  initialVariationId?: string;
   onClose: () => void;
   onCreated: (rental: Rental) => void;
 }) {
@@ -50,14 +52,14 @@ export function RentalFormModal({
   const [dueDate, setDueDate] = useState("");
   const [dailyRate, setDailyRate] = useState(0);
   const [total, setTotal] = useState(0);
-  const [totalTouched, setTotalTouched] = useState(false);
   const [advance, setAdvance] = useState(0);
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!open || !product) return;
-    setVariationId("");
+    setVariationId(initialVariationId || "");
     setCustomerName("");
     setCustomerPhone("");
     setQty(1);
@@ -65,11 +67,10 @@ export function RentalFormModal({
     setDueDate("");
     setDailyRate(product.dailyRate);
     setTotal(product.dailyRate);
-    setTotalTouched(false);
     setAdvance(0);
     setNotes("");
     setErrors({});
-  }, [open, product]);
+  }, [open, product, initialVariationId]);
 
   useEffect(() => {
     if (!open || !product) return;
@@ -80,7 +81,7 @@ export function RentalFormModal({
     const initialBranch = defaultBranch && stocked.includes(defaultBranch) ? defaultBranch : stocked[0] ?? "";
     setBranch(initialBranch);
     
-    if (product.type === "variable" && selectedVariation && !totalTouched) {
+    if (product.type === "variable" && selectedVariation) {
       setDailyRate(selectedVariation.dailyRate);
     }
   }, [open, product, defaultBranch, stocked, variationId, selectedVariation]);
@@ -90,20 +91,23 @@ export function RentalFormModal({
   const computed = days * dailyRate * (qty || 1);
 
   useEffect(() => {
-    if (!totalTouched) setTotal(computed);
-  }, [computed, totalTouched]);
+    setTotal(computed);
+  }, [computed]);
 
   const balance = Math.max(0, total - advance);
 
   if (!product) return null;
 
-  const submit = () => {
+  const submit = async () => {
     const next: Record<string, string> = {};
     if (product.type === "variable" && !variationId) next.variationId = "Please select a variation";
     if (!branch) next.branch = "Select a branch with stock";
     if (!customerName.trim()) next.customerName = "Customer name is required";
-    if (customerPhone && !/^(\+91)?\d{10}$/.test(customerPhone.replace(/[\s-]/g, "")))
+    if (!customerPhone.trim()) {
+      next.customerPhone = "Phone number is required";
+    } else if (!/^(\+91)?\d{10}$/.test(customerPhone.replace(/[\s-]/g, ""))) {
       next.customerPhone = "Use a 10-digit Indian number";
+    }
     if (!qty || qty < 1) next.qty = "Minimum quantity is 1";
     if (qty > available) next.qty = `Only ${available} available at ${branch}`;
     if (!rentDate) next.rentDate = "Rent date is required";
@@ -113,26 +117,34 @@ export function RentalFormModal({
     setErrors(next);
     if (Object.keys(next).length) return;
 
-    const rental = createRental({
-      productId: product.id,
-      productName: product.name,
-      variationId: selectedVariation?.id,
-      variationName: selectedVariation?.name,
-      sku: selectedVariation?.sku || product.sku,
-      image: product.image,
-      branch,
-      customerName: customerName.trim(),
-      customerPhone: customerPhone.replace(/[\s-]/g, ""),
-      qty,
-      rentDate,
-      dueDate,
-      dailyRate,
-      total,
-      advance,
-      paymentStatus: advance <= 0 ? "unpaid" : advance >= total ? "paid" : "partial",
-      notes: notes.trim(),
-    });
-    onCreated(rental);
+    setIsSubmitting(true);
+    try {
+      const rental = await createRental({
+        productId: product.id,
+        productName: product.name,
+        variationId: selectedVariation?.id,
+        variationName: selectedVariation?.name,
+        sku: selectedVariation?.sku || product.sku,
+        image: product.image,
+        branch,
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.replace(/[\s-]/g, ""),
+        qty,
+        rentDate,
+        dueDate,
+        dailyRate,
+        total,
+        advance,
+        paymentStatus: advance <= 0 ? "unpaid" : advance >= total ? "paid" : "partial",
+        notes: notes.trim(),
+      });
+      onCreated(rental);
+    } catch (e) {
+      console.error(e);
+      // Fallback if network fails
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -197,7 +209,7 @@ export function RentalFormModal({
               onChange={(e) => setCustomerName(e.target.value)}
             />
           </Field>
-          <Field label="Customer Phone" error={errors.customerPhone} hint="Optional · +91 or 10 digits">
+          <Field label="Customer Phone" error={errors.customerPhone} hint="Required · +91 or 10 digits">
             <div className="relative">
               <input
                 className={monoInputClass + " pr-9"}
@@ -241,14 +253,10 @@ export function RentalFormModal({
             hint={`${days} day${days > 1 ? "s" : ""} × ${inr(dailyRate)} × ${qty || 1}`}
           >
             <input
-              type="number"
-              min={0}
-              className={monoInputClass}
+              className={monoInputClass + " opacity-70 bg-white/[0.02] cursor-not-allowed"}
               value={total === 0 ? "" : total}
-              onChange={(e) => {
-                setTotalTouched(true);
-                setTotal(Number(e.target.value));
-              }}
+              readOnly
+              tabIndex={-1}
             />
           </Field>
 
@@ -279,8 +287,12 @@ export function RentalFormModal({
           <span className="font-mono text-xl font-semibold text-gold">{inr(balance)}</span>
         </div>
 
-        <button className={goldButtonClass + " mt-2 w-full"} onClick={submit}>
-          Confirm Rental
+        <button
+          className={goldButtonClass + " mt-2 w-full"}
+          onClick={submit}
+          disabled={isSubmitting || qty > available}
+        >
+          {isSubmitting ? "Confirming..." : "Confirm Rental"}
         </button>
       </DialogContent>
     </Dialog>

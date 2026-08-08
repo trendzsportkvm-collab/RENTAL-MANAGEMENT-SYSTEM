@@ -1,218 +1,15 @@
 import { createContext, useCallback, useContext, useMemo, useState, useEffect, type ReactNode } from "react";
 import type { PaymentStatus, Product, Rental, ReturnCondition, StockLocation } from "./types";
 import { nextToken, shiftISO, todayISO } from "./utils";
-
-const initialLocations: StockLocation[] = [
-  {
-    id: "l1",
-    name: "Branch 1 - Kalpetta",
-    slug: "branch-1-kalpetta",
-    isDefault: false,
-    backorderLocation: false,
-    autoAllocate: false,
-    priority: 0,
-    email: "",
-    enabled: true,
-  },
-  {
-    id: "l2",
-    name: "Branch 2 - Sulthan Bathery",
-    slug: "branch-2-sulthan-bathery",
-    isDefault: false,
-    backorderLocation: false,
-    autoAllocate: false,
-    priority: 0,
-    email: "",
-    enabled: true,
-  }
-];
-
-const initialProducts: Product[] = [
-  {
-    id: "p1",
-    name: "Designer Bridal Lehenga",
-    sku: "LEH-001",
-    dailyRate: 2499,
-    image: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&q=80",
-    type: "simple",
-    category: "Lehenga",
-    stock: { "Branch 1 - Kalpetta": 3, "Branch 2 - Sulthan Bathery": 2 },
-  },
-  {
-    id: "p2",
-    name: "Groom Sherwani",
-    sku: "SHR-001",
-    dailyRate: 1899,
-    image: "https://images.unsplash.com/photo-1605908502724-906062957813?w=800&q=80",
-    type: "simple",
-    category: "Sherwani",
-    stock: { "Branch 1 - Kalpetta": 5, "Branch 2 - Sulthan Bathery": 0 },
-  },
-  {
-    id: "p3",
-    name: "Bridal Gown",
-    sku: "GWN-001",
-    dailyRate: 2999,
-    image: "https://images.unsplash.com/photo-1596455607563-ad6193f76b17?w=800&q=80",
-    type: "simple",
-    category: "Gown",
-    stock: { "Branch 1 - Kalpetta": 0, "Branch 2 - Sulthan Bathery": 4 },
-  },
-  {
-    id: "p4",
-    name: "Kanchipuram Silk Saree",
-    sku: "SS-001",
-    dailyRate: 1299,
-    image: "https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=800&q=80",
-    type: "simple",
-    category: "Saree",
-    stock: { "Branch 1 - Kalpetta": 2, "Branch 2 - Sulthan Bathery": 1 },
-  },
-  {
-    id: "p5",
-    name: "Premium Tuxedo",
-    sku: "TUX",
-    dailyRate: 1599,
-    image: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800&q=80",
-    type: "variable",
-    category: "Suit",
-    stock: {},
-    attributes: [
-      { name: "Color", values: ["Black", "Navy"] },
-      { name: "Size", values: ["38", "40"] },
-    ],
-    variations: [
-      {
-        id: "v1",
-        name: "Color: Black, Size: 38",
-        sku: "TUX-BLK-38",
-        dailyRate: 1599,
-        stock: { "Branch 1 - Kalpetta": 2, "Branch 2 - Sulthan Bathery": 1 },
-        attributes: { Color: "Black", Size: "38" },
-        enabled: true,
-      },
-      {
-        id: "v2",
-        name: "Color: Black, Size: 40",
-        sku: "TUX-BLK-40",
-        dailyRate: 1599,
-        stock: { "Branch 1 - Kalpetta": 0, "Branch 2 - Sulthan Bathery": 1 },
-        attributes: { Color: "Black", Size: "40" },
-        enabled: true,
-      },
-      {
-        id: "v3",
-        name: "Color: Navy, Size: 38",
-        sku: "TUX-NVY-38",
-        dailyRate: 1599,
-        stock: { "Branch 1 - Kalpetta": 1, "Branch 2 - Sulthan Bathery": 0 },
-        attributes: { Color: "Navy", Size: "38" },
-        enabled: true,
-      },
-      {
-        id: "v4",
-        name: "Color: Navy, Size: 40",
-        sku: "TUX-NVY-40",
-        dailyRate: 1599,
-        stock: { "Branch 1 - Kalpetta": 1, "Branch 2 - Sulthan Bathery": 1 },
-        attributes: { Color: "Navy", Size: "40" },
-        enabled: true,
-      },
-    ],
-  },
-];
-
-const initialRentals: Rental[] = [
-  {
-    id: "r1",
-    token: "TRZ-2024-0001",
-    productId: "p1",
-    productName: "Designer Bridal Lehenga",
-    sku: "LEH-001",
-    image: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&q=80",
-    branch: "Branch 1 - Kalpetta",
-    customerName: "Arjun Kumar",
-    customerPhone: "9847012345",
-    qty: 1,
-    rentDate: shiftISO(-4),
-    dueDate: shiftISO(-1),
-    dailyRate: 2499,
-    total: 9996,
-    advance: 5000,
-    paymentStatus: "partial",
-    status: "out",
-    notes: "Wedding function at Sultan Bathery.",
-  },
-  {
-    id: "r2",
-    token: "TRZ-2024-0002",
-    productId: "p2",
-    productName: "Groom Sherwani",
-    sku: "SHR-001",
-    image: "https://images.unsplash.com/photo-1605908502724-906062957813?w=800&q=80",
-    branch: "Branch 2 - Sulthan Bathery",
-    customerName: "Meera Nair",
-    customerPhone: "9995512345",
-    qty: 1,
-    rentDate: todayISO(),
-    dueDate: shiftISO(1),
-    dailyRate: 1899,
-    total: 1899,
-    advance: 0,
-    paymentStatus: "unpaid",
-    status: "out",
-    notes: "",
-  },
-  {
-    id: "r4",
-    token: "TRZ-2024-0004",
-    productId: "p1",
-    productName: "Designer Bridal Lehenga",
-    sku: "LEH-001",
-    image: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&q=80",
-    branch: "Branch 1 - Kalpetta",
-    customerName: "Rahul Sharma",
-    customerPhone: "9123456780",
-    qty: 1,
-    rentDate: shiftISO(-10),
-    dueDate: shiftISO(-5),
-    dailyRate: 2499,
-    total: 12495,
-    advance: 12495,
-    paymentStatus: "paid",
-    status: "returned",
-    condition: "good",
-    returnedOn: shiftISO(-4),
-    notes: "Returned on time.",
-  },
-  {
-    id: "r3",
-    token: "TRZ-2024-0003",
-    productId: "p4",
-    productName: "Kanchipuram Silk Saree",
-    sku: "SS-001",
-    image: "https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=800&q=80",
-    branch: "Branch 1 - Kalpetta",
-    customerName: "Priya Menon",
-    customerPhone: "9846098460",
-    qty: 1,
-    rentDate: shiftISO(-1),
-    dueDate: shiftISO(7),
-    dailyRate: 1299,
-    total: 10392,
-    advance: 10392,
-    paymentStatus: "paid",
-    status: "out",
-    notes: "Onam celebration.",
-  },
-];
+import { createClient } from "../supabase/client";
 
 export interface ImportRow {
   name: string;
   sku: string;
-  daily_rate: string;
-  branch_name: string;
-  quantity: string;
+  category?: string;
+  "daily rate"?: string;
+  description?: string;
+  "image url"?: string;
 }
 
 interface StoreValue {
@@ -222,197 +19,656 @@ interface StoreValue {
   branches: string[];
   locations: StockLocation[];
   categories: string[];
-  createRental: (r: Omit<Rental, "id" | "token" | "status">) => Rental;
+  createRental: (r: Omit<Rental, "id" | "token" | "status">) => Promise<Rental>;
   createProduct: (p: Omit<Product, "id">) => Product;
   updateProduct: (id: string, p: Partial<Product>) => void;
+  deleteProduct: (id: string) => void;
   updateRental: (id: string, patch: Partial<Rental>) => void;
   setPaymentStatus: (id: string, p: PaymentStatus) => void;
   markReturned: (id: string, condition: ReturnCondition) => void;
-  importProducts: (rows: ImportRow[]) => { created: number; updated: number; errors: string[] };
+  importProducts: (rows: ImportRow[]) => Promise<{ created: number; updated: number; errors: string[] }>;
   createLocation: (loc: Omit<StockLocation, "id">) => void;
 }
 
-const StoreContext = createContext<StoreValue | null>(null);
-
-const initialCategories = ["Suit", "Shirt", "Jacket", "Saree", "Jeans", "Tuxedo"];
+export const StoreContext = createContext<StoreValue | null>(null);
 
 export function TrendzProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
-  const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [rentals, setRentals] = useState<Rental[]>(initialRentals);
-  const [categories, setCategories] = useState<string[]>(initialCategories);
-  const [locations, setLocations] = useState<StockLocation[]>(initialLocations);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [rentals, setRentals] = useState<Rental[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [locations, setLocations] = useState<StockLocation[]>([]);
+  const supabase = createClient();
+
+  const fetchInitialData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [branchesRes, catRes, productsRes, rentalsRes] = await Promise.all([
+        supabase.from('branches').select('*'),
+        supabase.from('categories').select('*'),
+        supabase.from('products').select(`
+          *,
+          categories(name),
+          product_stock(quantity, branches(name)),
+          product_variations(
+            id, name, sku, daily_rate, is_enabled,
+            product_stock(quantity, branches(name))
+          )
+        `),
+        supabase.from('rentals').select(`
+          id, token, rent_date, due_date, total, advance, payment_status, status, returned_on, condition, notes,
+          customers(full_name, phone),
+          branches(name),
+          rental_items(
+            product_id, variation_id, product_name, sku, image_url, qty, daily_rate,
+            product_variations(name)
+          )
+        `).order('created_at', { ascending: false })
+      ]);
+
+      if (branchesRes.data) {
+        setLocations(branchesRes.data
+          .map(b => ({
+            id: b.id, name: b.name, slug: b.slug,
+            isDefault: false, backorderLocation: false, autoAllocate: false,
+
+            priority: 0, email: b.email || "", enabled: b.is_active
+        })));
+      }
+
+      if (catRes.data) {
+        setCategories(catRes.data.map(c => c.name));
+      }
+
+      if (productsRes.data) {
+        setProducts(productsRes.data.map(p => ({
+          id: p.id,
+          name: p.name,
+          sku: p.sku || "",
+          dailyRate: p.daily_rate || 0,
+          image: p.image_url || "https://placehold.co/600x600/eeeeee/999999?text=No+Image",
+          description: p.description,
+          type: p.type as any,
+          category: p.categories?.name || "Uncategorized",
+          stock: (p.product_stock || []).reduce((acc: any, s: any) => {
+            if (s.branches?.name) acc[s.branches.name] = s.quantity;
+            return acc;
+          }, {}),
+          variations: (p.product_variations || []).map((v: any) => ({
+            id: v.id,
+            name: v.name,
+            sku: v.sku,
+            dailyRate: v.daily_rate || 0,
+            enabled: v.is_enabled ?? true,
+            attributes: {},
+            stock: (v.product_stock || []).reduce((acc: any, s: any) => {
+              if (s.branches?.name) acc[s.branches.name] = s.quantity;
+              return acc;
+            }, {}),
+          })),
+        })));
+      }
+
+      if (rentalsRes.data) {
+        setRentals(rentalsRes.data.map(r => {
+          const item = r.rental_items?.[0] || {};
+          return {
+            id: r.id,
+            token: r.token,
+            productId: item.product_id || "",
+            productName: item.product_name || "Unknown Item",
+            variationId: item.variation_id || undefined,
+            variationName: item.product_variations?.name || undefined,
+            sku: item.sku || "",
+            image: item.image_url || "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&q=80",
+            branch: r.branches?.name || "",
+            customerName: r.customers?.full_name || "",
+            customerPhone: r.customers?.phone || "",
+            qty: item.qty || 1,
+            rentDate: r.rent_date,
+            dueDate: r.due_date,
+            dailyRate: item.daily_rate || 0,
+            total: r.total || 0,
+            advance: r.advance || 0,
+            paymentStatus: r.payment_status as any,
+            status: r.status as any,
+            notes: r.notes || "",
+            returnedOn: r.returned_on || undefined,
+            condition: r.condition || undefined,
+          };
+        }));
+      }
+      
+    } catch(e) {
+      console.error(e);
+    }
+    setIsLoading(false);
+  }, [supabase]);
+
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 1000);
-    return () => clearTimeout(timer);
-  }, []);
+    fetchInitialData();
+  }, [fetchInitialData]);
 
-  const branches = useMemo(() => {
-    return locations.map(l => l.name);
-  }, [locations]);
-
-  const adjustStock = useCallback((productId: string, branch: string, delta: number, variationId?: string) => {
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id !== productId) return p;
-        if (p.type === "simple" || !variationId) {
-          return { ...p, stock: { ...p.stock, [branch]: Math.max(0, (p.stock[branch] ?? 0) + delta) } };
-        }
-        return {
-          ...p,
-          variations: p.variations?.map((v) =>
-            v.id === variationId
-              ? { ...v, stock: { ...v.stock, [branch]: Math.max(0, (v.stock[branch] ?? 0) + delta) } }
-              : v
-          ),
-        };
-      })
-    );
-  }, []);
-
-  const createRental: StoreValue["createRental"] = useCallback(
-    (draft) => {
-      const rental: Rental = {
-        ...draft,
-        id: `r${Date.now()}`,
-        token: nextToken(rentals),
-        status: "out",
-      };
-      setRentals((prev) => [rental, ...prev]);
-      adjustStock(rental.productId, rental.branch, -rental.qty, rental.variationId);
-      return rental;
-    },
-    [rentals, adjustStock],
-  );
+  const branches = useMemo(() => locations.map(l => l.name), [locations]);
 
   const createProduct: StoreValue["createProduct"] = useCallback((draft) => {
     const product: Product = { ...draft, id: `p${Date.now()}` };
     setProducts((prev) => [product, ...prev]);
+
+    // Background sync — save product to Supabase and then save stock rows
+    (async () => {
+      try {
+        // 1. Resolve category_id
+        let categoryId: string | null = null;
+        if (draft.category) {
+          const { data: catData } = await supabase
+            .from("categories")
+            .select("id")
+            .eq("name", draft.category)
+            .maybeSingle();
+          categoryId = catData?.id ?? null;
+        }
+
+        // 2. Insert the product
+        const { data: inserted, error: insertErr } = await supabase
+          .from("products")
+          .insert({
+            name: draft.name,
+            sku: draft.sku,
+            daily_rate: draft.dailyRate,
+            image_url: draft.image,
+            type: draft.type,
+            description: draft.description,
+            category_id: categoryId,
+          })
+          .select("id")
+          .single();
+
+        if (insertErr || !inserted) {
+          console.error("Failed to save product:", insertErr);
+          return;
+        }
+
+        const realId = inserted.id;
+        // Update local state with the real Supabase UUID so future updates work
+        setProducts((prev) =>
+          prev.map((p) => (p.id === product.id ? { ...p, id: realId } : p))
+        );
+
+        // 3. Save stock quantities for simple products
+        if (draft.type === "simple" && Object.keys(draft.stock).length > 0) {
+          const { data: branches } = await supabase
+            .from("branches")
+            .select("id, name");
+          if (branches) {
+            const stockRows = Object.entries(draft.stock)
+              .filter(([, qty]) => qty > 0)
+              .map(([branchName, qty]) => {
+                const branch = branches.find((b) => b.name === branchName);
+                return branch
+                  ? { product_id: realId, branch_id: branch.id, quantity: qty }
+                  : null;
+              })
+              .filter(Boolean);
+
+            if (stockRows.length > 0) {
+              const { error: stockErr } = await supabase
+                .from("product_stock")
+                .insert(stockRows);
+              if (stockErr) console.error("Failed to save stock:", stockErr);
+            }
+          }
+        }
+
+        // 4. Save variations + their stock for variable products
+        if (draft.type === "variable" && draft.variations?.length) {
+          const { data: branches } = await supabase
+            .from("branches")
+            .select("id, name");
+          for (const variation of draft.variations) {
+            if (!variation.enabled) continue;
+            const { data: insertedVar } = await supabase
+              .from("product_variations")
+              .insert({
+                product_id: realId,
+                name: variation.name,
+                sku: variation.sku,
+                daily_rate: variation.dailyRate,
+                is_enabled: variation.enabled,
+              })
+              .select("id")
+              .single();
+
+            if (insertedVar && branches) {
+              const varStockRows = Object.entries(variation.stock)
+                .filter(([, qty]) => qty > 0)
+                .map(([branchName, qty]) => {
+                  const branch = branches.find((b) => b.name === branchName);
+                  return branch
+                    ? { variation_id: insertedVar.id, branch_id: branch.id, quantity: qty }
+                    : null;
+                })
+                .filter(Boolean);
+              if (varStockRows.length > 0) {
+                await supabase.from("product_stock").insert(varStockRows);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error("createProduct sync error:", e);
+      }
+    })();
+
     return product;
-  }, []);
+  }, [supabase]);
 
   const updateProduct: StoreValue["updateProduct"] = useCallback((id, patch) => {
     setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
-  }, []);
+    if (id.startsWith('p')) return;
+    
+    (async () => {
+      try {
+        const dbPatch: any = {};
+        if (patch.name !== undefined) dbPatch.name = patch.name;
+        if (patch.sku !== undefined) dbPatch.sku = patch.sku;
+        if (patch.dailyRate !== undefined) dbPatch.daily_rate = patch.dailyRate;
+        if (patch.image !== undefined) dbPatch.image_url = patch.image;
+        if (patch.description !== undefined) dbPatch.description = patch.description;
+        
+        if (patch.category !== undefined) {
+          const { data: catData } = await supabase.from("categories").select("id").eq("name", patch.category).maybeSingle();
+          if (catData) dbPatch.category_id = catData.id;
+        }
+
+        if (Object.keys(dbPatch).length > 0) {
+          await supabase.from('products').update(dbPatch).eq('id', id);
+        }
+
+        const { data: branches } = await supabase.from("branches").select("id, name");
+        if (!branches) return;
+
+        if (patch.type === 'simple' && patch.stock) {
+          await supabase.from("product_stock").delete().eq("product_id", id);
+          const stockRows = Object.entries(patch.stock)
+            .filter(([, qty]) => qty > 0)
+            .map(([branchName, qty]) => {
+              const branch = branches.find((b) => b.name === branchName);
+              return branch ? { product_id: id, branch_id: branch.id, quantity: qty } : null;
+            }).filter(Boolean);
+            
+          if (stockRows.length > 0) await supabase.from("product_stock").insert(stockRows);
+        }
+        
+        if (patch.type === 'variable' && patch.variations) {
+          for (const v of patch.variations) {
+            try {
+              const isNew = v.id.startsWith('v');
+              let realVarId = v.id;
+              
+              if (isNew) {
+                const { data: upserted, error: varErr } = await supabase.from("product_variations")
+                  .upsert({
+                    product_id: id,
+                    name: v.name,
+                    sku: v.sku,
+                    daily_rate: v.dailyRate,
+                    is_enabled: v.enabled
+                  }, { onConflict: 'sku' })
+                  .select("id")
+                  .single();
+                  
+                if (varErr || !upserted) {
+                  console.error("Variation upsert error for", v.sku, varErr);
+                  continue;
+                }
+                realVarId = upserted.id;
+              } else {
+                const { error: updateErr } = await supabase.from("product_variations")
+                  .update({
+                    name: v.name,
+                    sku: v.sku,
+                    daily_rate: v.dailyRate,
+                    is_enabled: v.enabled
+                  })
+                  .eq("id", realVarId);
+                  
+                if (updateErr) {
+                  console.error("Variation update error for", v.sku, updateErr);
+                  continue;
+                }
+              }
+              
+              // Now safely update stock
+              await supabase.from("product_stock").delete().eq("variation_id", realVarId);
+              const varStockRows = Object.entries(v.stock)
+                .filter(([, qty]) => qty > 0)
+                .map(([branchName, qty]) => {
+                  const branch = branches.find((b) => b.name === branchName);
+                  return branch ? { variation_id: realVarId, branch_id: branch.id, quantity: qty } : null;
+                }).filter(Boolean);
+                
+              if (varStockRows.length > 0) {
+                const { error: stockErr } = await supabase.from("product_stock").insert(varStockRows);
+                if (stockErr) console.error("Stock insert error for", v.sku, stockErr);
+              }
+            } catch (innerErr) {
+              console.error("Error processing variation", v.sku, innerErr);
+            }
+          }
+        }
+      } catch (e) {
+        console.error("updateProduct sync error", e);
+      }
+    })();
+  }, [supabase]);
+
+  const createRental: StoreValue["createRental"] = useCallback(async (draft) => {
+    const tempId = `r${Date.now()}`;
+    const rental: Rental = { ...draft, id: tempId, token: `TRZ-Pending`, status: "out" };
+    setRentals((prev) => [rental, ...prev]);
+    
+    try {
+      // 1. Resolve branch_id
+      const { data: branch } = await supabase.from('branches').select('id').eq('name', draft.branch).maybeSingle();
+      if (!branch) throw new Error("Branch not found");
+
+      // 2. Resolve or create customer_id
+      let customerId: string;
+      const { data: existingCustomer } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('phone', draft.customerPhone)
+        .ilike('full_name', draft.customerName)
+        .maybeSingle();
+        
+      if (existingCustomer) {
+        customerId = existingCustomer.id;
+      } else {
+        const { data: newCustomer, error: custErr } = await supabase.from('customers').insert({
+          full_name: draft.customerName,
+          phone: draft.customerPhone
+        }).select('id').single();
+        if (custErr || !newCustomer) throw new Error("Failed to create customer");
+        customerId = newCustomer.id;
+      }
+
+      // 3. Insert Rental
+      const { data: insertedRental, error: rentalErr } = await supabase.from('rentals').insert({
+        customer_id: customerId,
+        branch_id: branch.id,
+        rent_date: draft.rentDate,
+        due_date: draft.dueDate,
+        total: draft.total,
+        advance: draft.advance,
+        payment_status: draft.paymentStatus,
+        status: "out",
+        notes: draft.notes
+      }).select('id, token').single();
+
+      if (rentalErr || !insertedRental) throw new Error("Failed to insert rental: " + rentalErr?.message);
+
+      // 4. Insert Rental Item (which triggers stock deduction)
+      const days = Math.max(1, Math.ceil((new Date(draft.dueDate).getTime() - new Date(draft.rentDate).getTime()) / (1000 * 3600 * 24)));
+      const { error: itemErr } = await supabase.from('rental_items').insert({
+        rental_id: insertedRental.id,
+        product_id: draft.variationId ? null : (draft.productId || null),
+        variation_id: draft.variationId || null,
+        product_name: draft.productName,
+        sku: draft.sku,
+        image_url: draft.image,
+        qty: draft.qty,
+        daily_rate: draft.dailyRate,
+        days,
+        subtotal: draft.total
+      });
+
+      if (itemErr) console.error("Failed to insert rental item:", itemErr);
+
+      const finalRental: Rental = { ...draft, id: insertedRental.id, token: insertedRental.token, status: "out" };
+      // Update local state with real IDs
+      setRentals(prev => prev.map(r => r.id === tempId ? finalRental : r));
+      return finalRental;
+    } catch (err) {
+      console.error("createRental sync error:", err);
+      throw err;
+    }
+  }, [supabase]);
 
   const updateRental: StoreValue["updateRental"] = useCallback((id, patch) => {
     setRentals((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
-  }, []);
+    if (!id.startsWith('r')) {
+      const dbPatch: any = {};
+      if (patch.dueDate !== undefined) dbPatch.due_date = patch.dueDate;
+      if (patch.notes !== undefined) dbPatch.notes = patch.notes;
+      if (patch.total !== undefined) dbPatch.total = patch.total;
+      if (patch.advance !== undefined) dbPatch.advance = patch.advance;
+      if (patch.paymentStatus !== undefined) dbPatch.payment_status = patch.paymentStatus;
+      
+      if (Object.keys(dbPatch).length > 0) {
+        supabase.from('rentals').update(dbPatch).eq('id', id).then();
+      }
+    }
+  }, [supabase]);
 
   const setPaymentStatus: StoreValue["setPaymentStatus"] = useCallback((id, paymentStatus) => {
-    setRentals((prev) =>
-      prev.map((r) =>
-        r.id === id
-          ? {
-              ...r,
-              paymentStatus,
-              advance: paymentStatus === "paid" ? r.total : r.advance,
-            }
-          : r,
-      ),
-    );
-  }, []);
+    setRentals((prev) => prev.map((r) => r.id === id ? { ...r, paymentStatus } : r));
+    if (!id.startsWith('r')) {
+      supabase.from('rentals').update({ payment_status: paymentStatus }).eq('id', id).then();
+    }
+  }, [supabase]);
 
-  const markReturned: StoreValue["markReturned"] = useCallback(
-    (id, condition) => {
-      setRentals((prev) => {
-        const target = prev.find((r) => r.id === id);
-        if (target && condition !== "missing") {
-          adjustStock(target.productId, target.branch, target.qty, target.variationId);
-        }
-        return prev.map((r) =>
-          r.id === id
-            ? {
-                ...r,
-                status: "returned" as const,
-                paymentStatus: "paid" as const,
-                advance: r.total,
-                condition,
-                returnedOn: todayISO(),
-              }
-            : r,
-        );
+  const markReturned: StoreValue["markReturned"] = useCallback((id, condition) => {
+    const returnedOn = todayISO();
+    setRentals((prev) => prev.map((r) => r.id === id ? { ...r, status: "returned" as const, paymentStatus: "paid" as const, condition, returnedOn } : r));
+    if (!id.startsWith('r')) {
+      supabase.from('rentals').update({ 
+        status: 'returned', 
+        payment_status: 'paid', 
+        condition,
+        returned_on: returnedOn
+      }).eq('id', id).then();
+    }
+  }, [supabase]);
+
+  const importProducts: StoreValue["importProducts"] = useCallback(async (rows) => {
+    let created = 0; let updated = 0; const errors: string[] = [];
+    
+    const [
+      { data: categories },
+      { data: dbBranches },
+      { data: existingProducts },
+      { data: existingVariations },
+      { data: existingStock }
+    ] = await Promise.all([
+      supabase.from('categories').select('id, name'),
+      supabase.from('branches').select('id, name'),
+      supabase.from('products').select('id, sku'),
+      supabase.from('product_variations').select('id, sku'),
+      supabase.from('product_stock').select('id, product_id, variation_id, branch_id')
+    ]);
+    
+    const branchMap = new Map((dbBranches || []).map(b => [b.name.toLowerCase(), b.id]));
+    const categoryMap = new Map((categories || []).map(c => [c.name.toLowerCase(), c.id]));
+    
+    const groups: Record<string, any[]> = {};
+    rows.forEach((row, i) => {
+      const sku = row.sku?.trim().toUpperCase();
+      if (!sku) { errors.push(`Row ${i + 2}: missing Base SKU`); return; }
+      if (!/^[A-Z]{3,4}-\d{3,4}$/.test(sku)) { errors.push(`Row ${i + 2}: Invalid SKU format (${sku})`); return; }
+      if (!groups[sku]) groups[sku] = [];
+      groups[sku].push(row);
+    });
+
+    const productsToUpsert: any[] = [];
+    const variationsToUpsert: any[] = [];
+    const stockToUpsert: any[] = [];
+    const newLocalProducts: Product[] = [];
+    
+    for (const [baseSku, groupRows] of Object.entries(groups)) {
+      const firstRow = groupRows[0];
+      const name = firstRow.name?.trim();
+      const type = firstRow.type?.trim().toLowerCase() === 'variable' ? 'variable' : 'simple';
+      const categoryName = firstRow.category?.trim() || "Uncategorized";
+      const catId = categoryMap.get(categoryName.toLowerCase()) || null;
+      const imageUrl = firstRow["image url"]?.trim() || "https://placehold.co/600x600/eeeeee/999999?text=No+Image";
+      const rate = Number(firstRow["daily rate"]) || 0;
+      const desc = firstRow.description?.trim();
+      
+      let productId = existingProducts?.find(p => p.sku === baseSku)?.id;
+      if (!productId) {
+        productId = crypto.randomUUID();
+        created++;
+      } else {
+        updated++;
+      }
+      
+      productsToUpsert.push({
+        id: productId,
+        sku: baseSku,
+        name,
+        type,
+        category_id: catId,
+        image_url: imageUrl,
+        daily_rate: rate,
+        description: desc
       });
-    },
-    [adjustStock],
-  );
-
-  const importProducts: StoreValue["importProducts"] = useCallback((rows) => {
-    let created = 0;
-    let updated = 0;
-    const errors: string[] = [];
-
-    setProducts((prev) => {
-      const next = prev.map((p) => ({ ...p, stock: { ...p.stock } }));
-      rows.forEach((row, i) => {
-        const line = i + 2;
-        const name = row.name?.trim();
-        const sku = row.sku?.trim();
-        const rate = Number(row.daily_rate);
-        const branch = row.branch_name?.trim();
-        const qty = Number(row.quantity);
-        if (!name || !sku || !branch) {
-          errors.push(`Row ${line}: missing name, sku or branch_name`);
-          return;
-        }
-        if (!Number.isFinite(rate) || rate <= 0) {
-          errors.push(`Row ${line}: invalid daily_rate "${row.daily_rate}"`);
-          return;
-        }
-        if (!Number.isFinite(qty) || qty < 0) {
-          errors.push(`Row ${line}: invalid quantity "${row.quantity}"`);
-          return;
-        }
-        const existing = next.find((p) => p.sku.toLowerCase() === sku.toLowerCase());
-        if (existing) {
-          existing.name = name;
-          existing.dailyRate = rate;
-          existing.stock[branch] = qty;
-          updated += 1;
-        } else {
-          next.push({
-            id: `p${Date.now()}-${i}`,
-            name,
-            sku,
-            dailyRate: rate,
-            image: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&q=80",
-            type: "simple",
-            category: "Uncategorized",
-            stock: { [branch]: qty },
+      
+      const localProduct: Product = {
+        id: productId,
+        sku: baseSku,
+        name,
+        type,
+        category: categoryName,
+        image: imageUrl,
+        dailyRate: rate,
+        description: desc,
+        stock: {},
+        variations: []
+      };
+      
+      if (type === 'simple') {
+        const row = groupRows[0];
+        Object.entries(row).forEach(([key, val]) => {
+          if (key.startsWith("stock:") && val) {
+            const branchName = key.split(":")[1].trim();
+            const branchId = branchMap.get(branchName.toLowerCase());
+            const qty = Number(val);
+            if (branchId && qty >= 0) {
+              const stockId = existingStock?.find(s => s.product_id === productId && s.branch_id === branchId)?.id || crypto.randomUUID();
+              stockToUpsert.push({ id: stockId, product_id: productId, branch_id: branchId, quantity: qty });
+              localProduct.stock[branchName] = qty;
+            }
+          }
+        });
+      } else {
+        groupRows.forEach(row => {
+          const vName = row["variation name"]?.trim();
+          const vSku = row["variation sku"]?.trim().toUpperCase();
+          if (!vName || !vSku) return;
+          
+          let vId = existingVariations?.find(v => v.sku === vSku)?.id;
+          if (!vId) vId = crypto.randomUUID();
+          
+          const vRate = Number(row["daily rate"]) || rate;
+          
+          variationsToUpsert.push({
+            id: vId,
+            product_id: productId,
+            name: vName,
+            sku: vSku,
+            daily_rate: vRate,
+            is_enabled: true
           });
-          created += 1;
-        }
+          
+          const vStock: Record<string, number> = {};
+          Object.entries(row).forEach(([key, val]) => {
+            if (key.startsWith("stock:") && val) {
+              const branchName = key.split(":")[1].trim();
+              const branchId = branchMap.get(branchName.toLowerCase());
+              const qty = Number(val);
+              if (branchId && qty >= 0) {
+                const stockId = existingStock?.find(s => s.variation_id === vId && s.branch_id === branchId)?.id || crypto.randomUUID();
+                stockToUpsert.push({ id: stockId, variation_id: vId, branch_id: branchId, quantity: qty });
+                vStock[branchName] = qty;
+              }
+            }
+          });
+          
+          localProduct.variations!.push({
+            id: vId,
+            name: vName,
+            sku: vSku,
+            dailyRate: vRate,
+            stock: vStock,
+            enabled: true,
+            attributes: {}
+          });
+        });
+      }
+      
+      newLocalProducts.push(localProduct);
+    }
+    
+    setProducts(prev => {
+      const next = [...prev];
+      newLocalProducts.forEach(np => {
+        const idx = next.findIndex(p => p.sku === np.sku);
+        if (idx !== -1) next[idx] = np;
+        else next.push(np);
       });
       return next;
     });
-
+    
+    if (productsToUpsert.length > 0) await supabase.from('products').upsert(productsToUpsert);
+    if (variationsToUpsert.length > 0) await supabase.from('product_variations').upsert(variationsToUpsert);
+    if (stockToUpsert.length > 0) await supabase.from('product_stock').upsert(stockToUpsert);
+    
     return { created, updated, errors };
-  }, []);
+  }, [supabase]);
 
   const createLocation: StoreValue["createLocation"] = useCallback((draft) => {
-    setLocations((prev) => [...prev, { ...draft, id: `l${Date.now()}` }]);
-  }, []);
+    const tempId = `l${Date.now()}`;
+    setLocations((prev) => [...prev, { ...draft, id: tempId }]);
+    
+    supabase.from('branches').insert({
+      name: draft.name,
+      slug: draft.slug,
+      email: draft.email || null,
+      is_active: draft.enabled !== false
+    }).select('id').single().then(({ data, error }) => {
+      if (data && !error) {
+        setLocations(prev => prev.map(l => l.id === tempId ? { ...l, id: data.id } : l));
+      } else {
+        console.error("Failed to insert branch:", error);
+      }
+    });
+  }, [supabase]);
 
-  const value = useMemo(
-    () => ({
-      isLoading,
-      products,
-      rentals,
-      branches,
-      locations,
-      categories,
-      createProduct,
-      updateProduct,
-      createRental,
-      updateRental,
-      setPaymentStatus,
-      markReturned,
-      importProducts,
-      createLocation,
-    }),
-    [isLoading, products, rentals, branches, locations, categories, createProduct, updateProduct, createRental, updateRental, setPaymentStatus, markReturned, importProducts, createLocation],
-  );
+  const deleteProduct: StoreValue["deleteProduct"] = useCallback((id) => {
+    const productToDelete = products.find(p => p.id === id);
+    setProducts((prev) => prev.filter((p) => p.id !== id));
+    if (!id.startsWith('p')) {
+      supabase.from('products').delete().eq('id', id).then(async ({ error }) => {
+        if (error) {
+          console.error("Failed to delete product:", error);
+        } else if (productToDelete?.image && productToDelete.image.includes('product_images/')) {
+          // Attempt to delete image from bucket
+          const parts = productToDelete.image.split('/');
+          const filename = parts[parts.length - 1];
+          if (filename) {
+            await supabase.storage.from("product_images").remove([filename]);
+          }
+        }
+      });
+    }
+  }, [supabase, products]);
+
+  const value = useMemo(() => ({
+    isLoading, products, rentals, branches, locations, categories,
+    createProduct, updateProduct, deleteProduct, createRental, updateRental, setPaymentStatus, markReturned, importProducts, createLocation,
+  }), [isLoading, products, rentals, branches, locations, categories, createProduct, updateProduct, deleteProduct, createRental, updateRental, setPaymentStatus, markReturned, importProducts, createLocation]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

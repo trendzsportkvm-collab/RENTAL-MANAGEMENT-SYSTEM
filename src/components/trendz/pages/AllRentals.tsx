@@ -143,7 +143,7 @@ export function AllRentals({ onOpen }: { onOpen?: (p: Product) => void }) {
                     const product = products.find(p => p.id === r.productId);
                     if (product) onOpen?.(product);
                   }}
-                  className="glass group overflow-hidden p-0 text-left transition-all duration-300 hover:border-gold/30 hover:shadow-glow-soft cursor-pointer w-full"
+                  className="glass group overflow-hidden p-0 text-left transition-all duration-300 hover:border-gold/30 hover:shadow-glow-soft cursor-pointer w-full flex flex-col h-full"
                 >
                   <img
                     src={r.image}
@@ -151,30 +151,33 @@ export function AllRentals({ onOpen }: { onOpen?: (p: Product) => void }) {
                     width={1024}
                     height={768}
                     loading="lazy"
-                    className="aspect-4/3 w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                    className="aspect-4/3 w-full shrink-0 object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                   />
-                  <div className="space-y-2 p-4">
+                  <div className="flex flex-col flex-1 w-full p-4">
                     <div className="flex items-start justify-between gap-2">
                       <h3 className="font-display text-lg leading-tight font-medium">{r.name}</h3>
-                      <StatusBadge tone={totalOf(r) > 0 ? "emerald" : "rust"}>
-                        {totalOf(r) > 0 ? "In Stock" : "Out of Stock"}
+                      <StatusBadge tone={totalOf(r) > 0 ? "emerald" : "rust"} className="shrink-0 mt-0.5">
+                        {totalOf(r) > 0 ? "In Stock" : "Out"}
                       </StatusBadge>
                     </div>
-                    <p className="font-mono text-xs text-muted-foreground">{r.sku}</p>
-                    <div className="flex items-center gap-2">
-                      <p className="font-mono text-sm text-gold">{inr(r.dailyRate)}/day</p>
-                      {r.type === "variable" && (
-                        <span className="rounded bg-white/[0.05] px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
-                          Variation
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {branches.map((b) => {
-                        const q = r.stock[b] || 0;
-                        if (q > 0) return <BranchPill key={b} branch={b} qty={q} />;
-                        return null;
-                      })}
+                    <p className="mt-1 font-mono text-xs text-muted-foreground">{r.sku}</p>
+                    
+                    <div className="mt-auto pt-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <p className="font-mono text-sm text-gold">{inr(r.dailyRate)}/day</p>
+                        {r.type === "variable" && (
+                          <span className="rounded bg-white/[0.05] px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+                            Variation
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {branches.map((b) => {
+                          const q = r.stock[b] || 0;
+                          if (q > 0) return <BranchPill key={b} branch={b} qty={q} />;
+                          return null;
+                        })}
+                      </div>
                     </div>
                   </div>
                 </button>
@@ -199,7 +202,7 @@ export function AllRentals({ onOpen }: { onOpen?: (p: Product) => void }) {
                     loading="lazy"
                     className="h-12 w-16 rounded-md border border-border object-cover"
                   />
-                  <div className="min-w-40 flex-1">
+                  <div className="min-w-[10rem] flex-1">
                     <h3 className="font-display text-base font-medium">
                       {r.name}{" "}
                       {r.type === "variable" && (

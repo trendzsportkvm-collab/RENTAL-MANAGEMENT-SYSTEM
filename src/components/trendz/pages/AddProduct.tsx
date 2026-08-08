@@ -3,9 +3,41 @@ import { toast } from "sonner";
 import { Plus, X, Trash2, ArrowLeft } from "lucide-react";
 import { useTrendz } from "@/lib/trendz/store";
 import type { Product, ProductAttribute, ProductVariation } from "@/lib/trendz/types";
+import { createClient } from "@/lib/supabase/client";
 import { Field, goldButtonClass, inputClass, monoInputClass } from "../primitives";
 
 type Tab = "basic" | "attributes" | "variations";
+
+const STANDARD_ATTRIBUTES = [
+  "Clothing Size",
+  "Shoe Size",
+  "Color",
+  "Fit / Style",
+  "Custom..."
+];
+
+const STANDARD_SUGGESTIONS: Record<string, string[]> = {
+  "Clothing Size": ["XS", "S", "M", "L", "XL", "XXL", "3XL"],
+  "Shoe Size": ["6", "7", "8", "9", "10", "11", "12"],
+  "Color": ["Black", "White", "Red", "Blue", "Green", "Gold", "Silver", "Pink", "Yellow", "Navy"],
+  "Fit / Style": ["Slim", "Regular", "Loose"],
+};
+
+const titleCase = (str: string) => {
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
+const formatAttributeValue = (name: string, val: string) => {
+  if (!val) return val;
+  if (name.includes("Size") && val.match(/^[a-z]+$/i) && val.length <= 3) {
+    return val.toUpperCase();
+  }
+  return titleCase(val);
+};
 
 export function AddProduct({
   productToEditId,
@@ -34,6 +66,8 @@ export function AddProduct({
 
   const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
   const [variations, setVariations] = useState<ProductVariation[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const supabase = createClient();
 
   useEffect(() => {
     if (productToEdit) {
@@ -67,10 +101,31 @@ export function AddProduct({
     setError("");
   }, [productToEdit, initialCategory, branches]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImage(URL.createObjectURL(file));
+      setIsUploading(true);
+      try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        
+        const { error } = await supabase.storage
+          .from('product_images')
+          .upload(fileName, file);
+
+        if (error) throw error;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('product_images')
+          .getPublicUrl(fileName);
+
+        setImage(publicUrl);
+      } catch (err: any) {
+        toast.error("Failed to upload image");
+        console.error(err);
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -91,7 +146,8 @@ export function AddProduct({
   const handleAttributeValues = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
-      const val = e.currentTarget.value.trim().replace(/,$/, "");
+      const rawVal = e.currentTarget.value.trim().replace(/,$/, "");
+      const val = formatAttributeValue(attributes[index].name, rawVal);
       if (val && !attributes[index].values.includes(val)) {
         updateAttribute(index, "values", [...attributes[index].values, val]);
         e.currentTarget.value = "";
@@ -100,7 +156,8 @@ export function AddProduct({
   };
 
   const handleAttributeBlur = (index: number, e: React.FocusEvent<HTMLInputElement>) => {
-    const val = e.currentTarget.value.trim().replace(/,$/, "");
+    const rawVal = e.currentTarget.value.trim().replace(/,$/, "");
+    const val = formatAttributeValue(attributes[index].name, rawVal);
     if (val && !attributes[index].values.includes(val)) {
       updateAttribute(index, "values", [...attributes[index].values, val]);
       e.currentTarget.value = "";
@@ -161,8 +218,13 @@ export function AddProduct({
   const save = () => {
     if (!name.trim()) return setError("Product name is required");
     if (!sku.trim()) return setError("Base SKU is required");
+    
+    const skuRegex = /^[A-Z]{3,4}-\d{3,4}$/;
+    if (!skuRegex.test(sku.trim())) {
+      return setError("Invalid SKU Format. It must be 3-4 letters followed by a hyphen and 3-4 numbers (e.g. TUX-001).");
+    }
+    
     if (!category.trim()) return setError("Category is required");
-    if (!image) return setError("Product image is required");
     if (type === "variable" && variations.length === 0) {
       return setError("Please generate variations for this variable product");
     }
@@ -324,9 +386,9 @@ export function AddProduct({
                       </div>
                     ) : (
                       <>
-                        <label className="cursor-pointer">
+                        <label className={`cursor-pointer ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
                           <span className="rounded-md bg-white/[0.05] px-4 py-2 text-sm text-foreground hover:bg-white/[0.1]">
-                            Select Image
+                            {isUploading ? "Uploading..." : "Select Image"}
                           </span>
                           <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                         </label>
@@ -362,12 +424,31 @@ export function AddProduct({
                 {attributes.map((attr, i) => (
                   <div key={i} className="flex flex-col gap-3 rounded-lg border border-border bg-white/[0.01] p-5 sm:flex-row sm:items-start">
                     <Field label="Attribute Name" className="sm:w-1/3">
-                      <input
-                        className={inputClass}
-                        value={attr.name}
-                        onChange={(e) => updateAttribute(i, "name", e.target.value)}
-                        placeholder="e.g. Size, Color"
-                      />
+                      <div className="flex flex-col gap-2">
+                        <select
+                          className={inputClass}
+                          value={STANDARD_ATTRIBUTES.includes(attr.name) ? attr.name : (attr.name ? "Custom..." : "")}
+                          onChange={(e) => {
+                            if (e.target.value === "Custom...") {
+                              updateAttribute(i, "name", "Custom Attribute");
+                            } else {
+                              updateAttribute(i, "name", e.target.value);
+                            }
+                          }}
+                        >
+                          <option value="" disabled>Select Attribute</option>
+                          {STANDARD_ATTRIBUTES.map(a => <option key={a} value={a}>{a}</option>)}
+                        </select>
+                        {!STANDARD_ATTRIBUTES.includes(attr.name) && attr.name && (
+                          <input
+                            className={inputClass}
+                            value={attr.name === "Custom Attribute" ? "" : attr.name}
+                            onChange={(e) => updateAttribute(i, "name", e.target.value)}
+                            placeholder="Type custom name"
+                            autoFocus
+                          />
+                        )}
+                      </div>
                     </Field>
                     <div className="flex-1 space-y-2">
                       <Field label="Values (Press Enter to add)">
@@ -378,6 +459,25 @@ export function AddProduct({
                           onBlur={(e) => handleAttributeBlur(i, e)}
                         />
                       </Field>
+                      {STANDARD_SUGGESTIONS[attr.name] && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          <span className="text-xs text-muted-foreground mr-1 mt-1 flex items-center">Suggestions:</span>
+                          {STANDARD_SUGGESTIONS[attr.name].map(sug => (
+                            <button
+                              key={sug}
+                              type="button"
+                              onClick={() => {
+                                if (!attr.values.includes(sug)) {
+                                  updateAttribute(i, "values", [...attr.values, sug]);
+                                }
+                              }}
+                              className="rounded border border-border bg-white/[0.02] px-2 py-0.5 text-xs text-muted-foreground hover:bg-gold/10 hover:text-gold hover:border-gold/30 transition-colors"
+                            >
+                              {sug}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                       {attr.values.length > 0 && (
                         <div className="flex flex-wrap gap-2 pt-1">
                           {attr.values.map((v) => (

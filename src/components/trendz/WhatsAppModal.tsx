@@ -44,6 +44,7 @@ export function WhatsAppModal({
             href={waLink(phone, message, true)}
             target="_blank"
             rel="noreferrer"
+            onClick={onClose}
           >
             Send via WhatsApp App
           </a>
@@ -52,6 +53,7 @@ export function WhatsAppModal({
             href={waLink(phone, message)}
             target="_blank"
             rel="noreferrer"
+            onClick={onClose}
           >
             Send via WhatsApp Web
           </a>
