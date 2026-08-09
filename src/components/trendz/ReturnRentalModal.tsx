@@ -33,21 +33,21 @@ export function ReturnRentalModal({
     setNotes("");
   }, [open, rental]);
 
-  if (!rental) return null;
-
-  const lateDays = returnDate && returnDate > rental.dueDate ? daysBetween(rental.dueDate, returnDate) : 0;
-  const finalTotal = rental.total + extraFees;
-  const balanceDueBeforeCollection = finalTotal - rental.advance;
+  const lateDays = rental && returnDate && returnDate > rental.dueDate ? daysBetween(rental.dueDate, returnDate) : 0;
+  const finalTotal = (rental?.total || 0) + extraFees;
+  const balanceDueBeforeCollection = finalTotal - (rental?.advance || 0);
   
   // Keep amount collected in sync with the new balance if extra fees change, but only if they haven't manually zeroed it
   useEffect(() => {
-    if (open) {
+    if (open && rental) {
       setAmountCollected(Math.max(0, finalTotal - rental.advance));
     }
-  }, [finalTotal, rental.advance, open]);
+  }, [finalTotal, rental?.advance, open]);
 
-  const newAdvance = rental.advance + amountCollected;
+  const newAdvance = (rental?.advance || 0) + amountCollected;
   const finalBalance = finalTotal - newAdvance;
+
+  if (!rental) return null;
 
   const submit = async () => {
     setIsSubmitting(true);
