@@ -90,7 +90,7 @@ export function ReturnRentalModal({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="col-span-2 rounded-md bg-white/[0.03] p-3 border border-border">
-            <p className="text-sm font-medium text-white">{rental.productName}</p>
+            <p className="text-sm font-medium text-foreground">{rental.productName}</p>
             <p className="text-xs text-muted-foreground mt-1">Customer: {rental.customerName} ({rental.customerPhone})</p>
             <div className="mt-2 flex items-center justify-between text-xs">
               <span className="text-muted-foreground">Original Due Date:</span>
@@ -171,7 +171,7 @@ export function ReturnRentalModal({
           <span className="text-xs tracking-[0.14em] text-muted-foreground uppercase">
             Final Ledger Balance
           </span>
-          <span className={`font-mono text-xl font-semibold ${finalBalance === 0 ? "text-emerald" : finalBalance > 0 ? "text-gold" : "text-white"}`}>
+          <span className={`font-mono text-xl font-semibold ${finalBalance === 0 ? "text-emerald" : finalBalance > 0 ? "text-gold" : "text-foreground"}`}>
             {finalBalance === 0 ? "SETTLED" : `${inr(finalBalance)} DUE`}
           </span>
         </div>
