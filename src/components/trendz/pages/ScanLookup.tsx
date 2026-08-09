@@ -31,9 +31,15 @@ export function ScanLookup({ onPutOut }: { onPutOut: (p: Product, branch?: strin
 
   const activeRentals = result 
     ? rentals.filter((r) => {
-        if (r.productId !== result.id || r.status !== "out") return false;
-        if (matchedVariationIds && r.variationId) return matchedVariationIds.includes(r.variationId);
-        return true;
+        if (r.status !== "out") return false;
+        if (matchedVariationIds && r.variationId) {
+          return matchedVariationIds.includes(r.variationId);
+        }
+        if (r.productId === result.id) return true;
+        if (result.type === "variable" && result.variations && r.variationId) {
+          return result.variations.some(v => v.id === r.variationId);
+        }
+        return false;
       })
     : [];
 
