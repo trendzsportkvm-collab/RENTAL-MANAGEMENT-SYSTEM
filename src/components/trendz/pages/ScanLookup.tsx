@@ -260,7 +260,7 @@ export function ScanLookup({ onPutOut }: { onPutOut: (p: Product, branch?: strin
                         <div>
                           <p className="text-sm font-medium text-foreground">{r.customerName} <span className="font-normal text-[11px] text-muted-foreground ml-1">({r.branch})</span></p>
                           <p className="text-[11px] text-muted-foreground mt-0.5">
-                            {r.variationName && <span className="text-white mr-1.5">{r.variationName}</span>}
+                            {r.variationName && <span className="text-foreground mr-1.5">{r.variationName}</span>}
                             Due {fmtDate(r.dueDate)}
                           </p>
                         </div>
