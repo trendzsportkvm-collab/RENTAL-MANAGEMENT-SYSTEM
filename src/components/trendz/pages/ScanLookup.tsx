@@ -5,7 +5,7 @@ import { useTrendz } from "@/lib/trendz/store";
 import { useAuth } from "@/lib/trendz/AuthContext";
 import { ReturnRentalModal } from "../ReturnRentalModal";
 import type { Product } from "@/lib/trendz/types";
-import { inr } from "@/lib/trendz/utils";
+import { inr, fmtDate } from "@/lib/trendz/utils";
 import { StockBadge, goldButtonClass } from "../primitives";
 import { Skeleton, TableSkeleton } from "../Skeleton";
 import dynamic from "next/dynamic";
@@ -24,7 +24,18 @@ export function ScanLookup({ onPutOut }: { onPutOut: (p: Product, branch?: strin
   const [showScanner, setShowScanner] = useState(false);
   const [returnRentalId, setReturnRentalId] = useState<string | null>(null);
 
-  const activeRentals = result ? rentals.filter((r) => r.productId === result.id && r.status === "out") : [];
+  const exactSearchQ = query.trim().toLowerCase();
+  const matchedVariationIds = result?.type === "variable" && result.variations?.some(v => v.sku.toLowerCase() === exactSearchQ)
+    ? result.variations.filter(v => v.sku.toLowerCase() === exactSearchQ).map(v => v.id)
+    : null;
+
+  const activeRentals = result 
+    ? rentals.filter((r) => {
+        if (r.productId !== result.id || r.status !== "out") return false;
+        if (matchedVariationIds && r.variationId) return matchedVariationIds.includes(r.variationId);
+        return true;
+      })
+    : [];
 
   const searchProduct = (q: string) => {
     q = q.trim().toLowerCase();
@@ -247,8 +258,11 @@ export function ScanLookup({ onPutOut }: { onPutOut: (p: Product, branch?: strin
                     {activeRentals.map((r) => (
                       <div key={r.id} className="flex items-center justify-between rounded-md border border-border bg-white/[0.02] p-3">
                         <div>
-                          <p className="text-sm font-medium text-foreground">{r.customerName}</p>
-                          <p className="text-xs text-muted-foreground">Due: {r.dueDate}</p>
+                          <p className="text-sm font-medium text-foreground">{r.customerName} <span className="font-normal text-[11px] text-muted-foreground ml-1">({r.branch})</span></p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                            {r.variationName && <span className="text-white mr-1.5">{r.variationName}</span>}
+                            Due {fmtDate(r.dueDate)}
+                          </p>
                         </div>
                         <button
                           className="rounded bg-emerald/10 border border-emerald/30 px-3 py-1.5 text-xs font-medium text-emerald transition-colors hover:bg-emerald/20"
