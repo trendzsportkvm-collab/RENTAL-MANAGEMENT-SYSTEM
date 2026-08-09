@@ -25,7 +25,7 @@ interface StoreValue {
   deleteProduct: (id: string) => void;
   updateRental: (id: string, patch: Partial<Rental>) => void;
   setPaymentStatus: (id: string, p: PaymentStatus) => void;
-  markReturned: (id: string, condition: ReturnCondition) => void;
+  markReturned: (id: string, payload: { condition: ReturnCondition; returned_on: string; total: number; advance: number; payment_status: "paid" | "partial" | "unpaid"; notes: string }) => void;
   importProducts: (rows: ImportRow[]) => Promise<{ created: number; updated: number; errors: string[] }>;
   createLocation: (loc: Omit<StockLocation, "id">) => void;
 }
@@ -371,7 +371,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
     
     try {
       // 1. Resolve branch_id
-      const { data: branch } = await supabase.from('branches').select('id').eq('name', draft.branch).maybeSingle();
+      const { data: branch } = await supabase.from('branches').select('id').ilike('name', draft.branch).maybeSingle();
       if (!branch) throw new Error("Branch not found");
 
       // 2. Resolve or create customer_id
@@ -459,15 +459,27 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
     }
   }, [supabase]);
 
-  const markReturned: StoreValue["markReturned"] = useCallback((id, condition) => {
-    const returnedOn = todayISO();
-    setRentals((prev) => prev.map((r) => r.id === id ? { ...r, status: "returned" as const, paymentStatus: "paid" as const, condition, returnedOn } : r));
+  const markReturned: StoreValue["markReturned"] = useCallback((id, payload) => {
+    setRentals((prev) => prev.map((r) => r.id === id ? { 
+      ...r, 
+      status: "returned" as const, 
+      paymentStatus: payload.payment_status as const, 
+      condition: payload.condition, 
+      returnedOn: payload.returned_on,
+      total: payload.total,
+      advance: payload.advance,
+      notes: payload.notes
+    } : r));
+    
     if (!id.startsWith('r')) {
       supabase.from('rentals').update({ 
         status: 'returned', 
-        payment_status: 'paid', 
-        condition,
-        returned_on: returnedOn
+        payment_status: payload.payment_status, 
+        condition: payload.condition,
+        returned_on: payload.returned_on,
+        total: payload.total,
+        advance: payload.advance,
+        notes: payload.notes
       }).eq('id', id).then();
     }
   }, [supabase]);

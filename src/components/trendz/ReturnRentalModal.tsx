@@ -1,0 +1,198 @@
+import { useEffect, useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useTrendz } from "@/lib/trendz/store";
+import type { Rental, ReturnCondition } from "@/lib/trendz/types";
+import { daysBetween, inr, todayISO } from "@/lib/trendz/utils";
+import { Field, goldButtonClass, ghostButtonClass, inputClass, monoInputClass } from "./primitives";
+import { toast } from "sonner";
+
+export function ReturnRentalModal({
+  open,
+  rental,
+  onClose,
+}: {
+  open: boolean;
+  rental: Rental | null;
+  onClose: () => void;
+}) {
+  const { markReturned } = useTrendz();
+
+  const [returnDate, setReturnDate] = useState(todayISO());
+  const [condition, setCondition] = useState<ReturnCondition>("good");
+  const [extraFees, setExtraFees] = useState(0);
+  const [amountCollected, setAmountCollected] = useState(0);
+  const [notes, setNotes] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!open || !rental) return;
+    setReturnDate(todayISO());
+    setCondition("good");
+    setExtraFees(0);
+    setAmountCollected(Math.max(0, rental.total - rental.advance));
+    setNotes("");
+  }, [open, rental]);
+
+  if (!rental) return null;
+
+  const lateDays = returnDate && returnDate > rental.dueDate ? daysBetween(rental.dueDate, returnDate) : 0;
+  const finalTotal = rental.total + extraFees;
+  const balanceDueBeforeCollection = finalTotal - rental.advance;
+  
+  // Keep amount collected in sync with the new balance if extra fees change, but only if they haven't manually zeroed it
+  useEffect(() => {
+    if (open) {
+      setAmountCollected(Math.max(0, finalTotal - rental.advance));
+    }
+  }, [finalTotal, rental.advance, open]);
+
+  const newAdvance = rental.advance + amountCollected;
+  const finalBalance = finalTotal - newAdvance;
+
+  const submit = async () => {
+    setIsSubmitting(true);
+    try {
+      let finalNotes = rental.notes || "";
+      if (notes.trim()) {
+        finalNotes = finalNotes ? `${finalNotes}\nReturn Note: ${notes.trim()}` : `Return Note: ${notes.trim()}`;
+      }
+      if (extraFees > 0) {
+        finalNotes = finalNotes ? `${finalNotes}\nExtra Fees (Damage/Late): ${inr(extraFees)}` : `Extra Fees (Damage/Late): ${inr(extraFees)}`;
+      }
+
+      markReturned(rental.id, {
+        condition,
+        returned_on: returnDate,
+        total: finalTotal,
+        advance: newAdvance,
+        payment_status: finalBalance <= 0 ? "paid" : newAdvance > 0 ? "partial" : "unpaid",
+        notes: finalNotes,
+      });
+      
+      toast.success("Rental successfully returned & ledger updated!");
+      onClose();
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to mark as returned");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="glass-strong max-h-[90vh] overflow-y-auto sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle className="font-display text-2xl font-semibold">
+            Return & Settle Rental
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="col-span-2 rounded-md bg-white/[0.03] p-3 border border-border">
+            <p className="text-sm font-medium text-white">{rental.productName}</p>
+            <p className="text-xs text-muted-foreground mt-1">Customer: {rental.customerName} ({rental.customerPhone})</p>
+            <div className="mt-2 flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Original Due Date:</span>
+              <span className="font-mono text-emerald">{rental.dueDate}</span>
+            </div>
+            <div className="mt-1 flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Base Total:</span>
+              <span className="font-mono">{inr(rental.total)}</span>
+            </div>
+            <div className="mt-1 flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Advance Already Paid:</span>
+              <span className="font-mono">{inr(rental.advance)}</span>
+            </div>
+          </div>
+
+          <Field label="Return Date">
+            <input
+              type="date"
+              className={monoInputClass}
+              value={returnDate}
+              onChange={(e) => setReturnDate(e.target.value)}
+            />
+            {lateDays > 0 && (
+              <p className="mt-1 text-xs text-red-400">⚠️ {lateDays} days late!</p>
+            )}
+          </Field>
+
+          <Field label="Condition">
+            <select
+              className={inputClass}
+              value={condition}
+              onChange={(e) => setCondition(e.target.value as ReturnCondition)}
+            >
+              <option value="good">Good</option>
+              <option value="damaged">Damaged</option>
+              <option value="missing">Missing</option>
+            </select>
+          </Field>
+
+          <Field 
+            label="Extra Fees (₹)" 
+            hint={lateDays > 0 ? `Suggested late fee: ${inr(lateDays * rental.dailyRate)}` : "Damages, Late fines, etc."}
+          >
+            <input
+              type="number"
+              min={0}
+              className={monoInputClass}
+              value={extraFees === 0 ? "" : extraFees}
+              onChange={(e) => setExtraFees(Number(e.target.value))}
+            />
+          </Field>
+
+          <Field 
+            label="Amount Collected Now (₹)" 
+            hint={`Total pending before this: ${inr(balanceDueBeforeCollection)}`}
+          >
+            <input
+              type="number"
+              min={0}
+              className={monoInputClass + (amountCollected > 0 ? " text-gold" : "")}
+              value={amountCollected === 0 ? "" : amountCollected}
+              onChange={(e) => setAmountCollected(Number(e.target.value))}
+            />
+          </Field>
+
+          <Field label="Return Notes" className="sm:col-span-2">
+            <textarea
+              rows={2}
+              className={inputClass}
+              placeholder="Record any damage details or reasons for extra fees..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </Field>
+        </div>
+
+        <div className="mt-4 flex items-center justify-between rounded-lg border border-border bg-white/[0.03] px-4 py-3">
+          <span className="text-xs tracking-[0.14em] text-muted-foreground uppercase">
+            Final Ledger Balance
+          </span>
+          <span className={`font-mono text-xl font-semibold ${finalBalance === 0 ? "text-emerald" : finalBalance > 0 ? "text-gold" : "text-white"}`}>
+            {finalBalance === 0 ? "SETTLED" : `${inr(finalBalance)} DUE`}
+          </span>
+        </div>
+
+        <div className="mt-4 flex gap-3">
+          <button
+            className={goldButtonClass + " flex-1"}
+            onClick={submit}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Saving..." : "Confirm Return & Settle"}
+          </button>
+          <button
+            className={ghostButtonClass + " flex-1"}
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

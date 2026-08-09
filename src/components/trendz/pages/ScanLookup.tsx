@@ -3,6 +3,7 @@ import { Barcode, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useTrendz } from "@/lib/trendz/store";
 import { useAuth } from "@/lib/trendz/AuthContext";
+import { ReturnRentalModal } from "../ReturnRentalModal";
 import type { Product } from "@/lib/trendz/types";
 import { inr } from "@/lib/trendz/utils";
 import { StockBadge, goldButtonClass } from "../primitives";
@@ -21,6 +22,7 @@ export function ScanLookup({ onPutOut }: { onPutOut: (p: Product, branch?: strin
   const [result, setResult] = useState<Product | null>(null);
   const [searched, setSearched] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [returnRentalId, setReturnRentalId] = useState<string | null>(null);
 
   const activeRentals = result ? rentals.filter((r) => r.productId === result.id && r.status === "out") : [];
 
@@ -250,9 +252,9 @@ export function ScanLookup({ onPutOut }: { onPutOut: (p: Product, branch?: strin
                         </div>
                         <button
                           className="rounded bg-emerald/10 border border-emerald/30 px-3 py-1.5 text-xs font-medium text-emerald transition-colors hover:bg-emerald/20"
-                          onClick={() => { markReturned(r.id, "good"); toast.success("Marked as returned"); }}
+                          onClick={() => setReturnRentalId(r.id)}
                         >
-                          Mark as Returned
+                          Return
                         </button>
                       </div>
                     ))}
@@ -268,6 +270,12 @@ export function ScanLookup({ onPutOut }: { onPutOut: (p: Product, branch?: strin
           ) : null}
         </>
       )}
+
+      <ReturnRentalModal
+        open={!!returnRentalId}
+        rental={rentals.find((r) => r.id === returnRentalId) || null}
+        onClose={() => setReturnRentalId(null)}
+      />
     </div>
   );
 }

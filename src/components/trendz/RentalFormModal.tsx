@@ -51,6 +51,7 @@ export function RentalFormModal({
   const [rentDate, setRentDate] = useState(todayISO());
   const [dueDate, setDueDate] = useState("");
   const [dailyRate, setDailyRate] = useState(0);
+  const [discount, setDiscount] = useState(0);
   const [total, setTotal] = useState(0);
   const [advance, setAdvance] = useState(0);
   const [notes, setNotes] = useState("");
@@ -66,6 +67,7 @@ export function RentalFormModal({
     setRentDate(todayISO());
     setDueDate("");
     setDailyRate(product.dailyRate);
+    setDiscount(0);
     setTotal(product.dailyRate);
     setAdvance(0);
     setNotes("");
@@ -88,7 +90,7 @@ export function RentalFormModal({
 
   const available = product && branch ? (product.type === "simple" ? (product.stock[branch] ?? 0) : (selectedVariation?.stock[branch] ?? 0)) : 0;
   const days = rentDate && dueDate && dueDate > rentDate ? daysBetween(rentDate, dueDate) : 1;
-  const computed = days * dailyRate * (qty || 1);
+  const computed = Math.max(0, days * dailyRate * (qty || 1) - discount);
 
   useEffect(() => {
     setTotal(computed);
@@ -248,9 +250,18 @@ export function RentalFormModal({
               onChange={(e) => setDailyRate(Number(e.target.value))}
             />
           </Field>
+          <Field label="Discount (₹)">
+            <input
+              type="number"
+              min={0}
+              className={monoInputClass}
+              value={discount === 0 ? "" : discount}
+              onChange={(e) => setDiscount(Number(e.target.value))}
+            />
+          </Field>
           <Field
             label="Total Amount (₹)"
-            hint={`${days} day${days > 1 ? "s" : ""} × ${inr(dailyRate)} × ${qty || 1}`}
+            hint={discount > 0 ? `${days} day${days > 1 ? "s" : ""} × ${inr(dailyRate)} × ${qty || 1} - ${inr(discount)} discount` : `${days} day${days > 1 ? "s" : ""} × ${inr(dailyRate)} × ${qty || 1}`}
           >
             <input
               className={monoInputClass + " opacity-70 bg-white/[0.02] cursor-not-allowed"}

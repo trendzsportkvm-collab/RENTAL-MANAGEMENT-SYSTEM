@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { Download, MessageCircle, Filter, ArrowUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { useTrendz } from "@/lib/trendz/store";
 import type { Rental } from "@/lib/trendz/types";
-import { balanceOf, daysBetween, downloadCSV, fmtDate, inr, isOverdue, paymentLabel, todayISO, waLink, waReminder } from "@/lib/trendz/utils";
+import { balanceOf, daysBetween, fmtDate, inr, isOverdue, waLink, waReminder } from "@/lib/trendz/utils";
 import {
   PaymentBadge,
   RentalStatusBadge,
@@ -15,7 +15,7 @@ import {
   PaymentStatusSelect,
   StatusBadge,
 } from "../primitives";
-import { ReturnConfirm } from "../ReturnConfirm";
+import { ReturnRentalModal } from "../ReturnRentalModal";
 import { TableSkeleton, SummaryCardsSkeleton } from "../Skeleton";
 import { useAuth } from "@/lib/trendz/AuthContext";
 import { generateLedgerPDF } from "@/lib/trendz/pdf";
@@ -36,20 +36,20 @@ interface Filters {
 type SortKey = "rentDate" | "dueDate" | "customerName" | "token" | "total";
 
 export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
-  const { rentals, branches, setPaymentStatus, markReturned, isLoading } = useTrendz();
+  const { rentals, branches, setPaymentStatus, isLoading } = useTrendz();
   const { profile } = useAuth();
-  const [confirmId, setConfirmId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"rental" | "ledger">("rental");
   const [showFilters, setShowFilters] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("rentDate");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [returnRentalId, setReturnRentalId] = useState<string | null>(null);
 
   const initial: Filters = {
-    from: "", // Default to no date filter so we see active by default easily, or keep it to month start
+    from: "",
     to: "",
     branch: "all",
-    status: "all", // Show all by default in the new combined dashboard, or "out" ? Let's stick to "all" to be a true ledger/dashboard combo
+    status: "all",
     payment: "all",
   };
   
@@ -59,7 +59,6 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
   const rows = useMemo(() => {
     let filtered = rentals;
     
-    // Apply common filters
     filtered = filtered.filter((r) => {
       if (applied.from && r.rentDate < applied.from) return false;
       if (applied.to && r.rentDate > applied.to) return false;
@@ -68,7 +67,6 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
       return true;
     });
 
-    // Apply tab-specific status filter
     if (activeTab === "rental") {
       filtered = filtered.filter(r => {
         if (r.status === "out") return true;
@@ -94,7 +92,7 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
       }
       return 0;
     });
-  }, [rentals, applied, sortKey, sortOrder]);
+  }, [rentals, applied, sortKey, sortOrder, activeTab]);
 
   const active = rentals.filter((r) => r.status === "out");
   const overdue = active.filter(isOverdue);
@@ -106,9 +104,6 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
     return a;
   }, 0);
   const pending = rows.reduce((a, r) => a + balanceOf(r), 0);
-  const overdueBalance = rows.filter(isOverdue).reduce((a, r) => a + balanceOf(r), 0);
-
-  // CSV export removed as per user request
 
   return (
     <div>
@@ -266,7 +261,6 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
             <TableSkeleton rows={8} columns={8} />
           </div>
         ) : activeTab === "rental" ? (
-          /* ── RENTAL DASHBOARD TABLE ── operational focus ── */
           <table className="w-full min-w-[1000px] text-sm">
             <thead className="sticky top-0 z-10 bg-surface-2/95 backdrop-blur">
               <tr className="text-left text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
@@ -320,23 +314,13 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
                       <div className="relative flex items-center gap-2">
                         <button className={ghostButtonClass + " border-indigo/40 text-indigo"} onClick={() => onEdit(r)}>Edit</button>
                         {r.status === "out" && (
-                          <button className={ghostButtonClass} onClick={() => setConfirmId(r.id)}>Return</button>
+                          <button className={ghostButtonClass} onClick={() => setReturnRentalId(r.id)}>Return</button>
                         )}
                         <a href={waLink(r.customerPhone, waReminder(r))} target="_blank" rel="noreferrer"
                           aria-label="WhatsApp reminder"
                           className="rounded-md border border-emerald/40 bg-emerald/10 p-1.5 text-emerald transition-colors duration-200 hover:bg-emerald/20">
                           <MessageCircle className="h-3.5 w-3.5" />
                         </a>
-                        {confirmId === r.id ? (
-                          <ReturnConfirm
-                            onCancel={() => setConfirmId(null)}
-                            onConfirm={(condition) => {
-                              markReturned(r.id, condition);
-                              setConfirmId(null);
-                              toast.success(`${r.token} returned`, { description: `Condition: ${condition} · marked paid` });
-                            }}
-                          />
-                        ) : null}
                       </div>
                     </td>
                   </tr>
@@ -345,7 +329,6 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
             </tbody>
           </table>
         ) : (
-          /* ── FINANCIAL LEDGER TABLE ── money focus ── */
           <table className="w-full min-w-[1200px] text-sm">
             <thead className="sticky top-0 z-10 bg-surface-2/95 backdrop-blur">
               <tr className="text-left text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
@@ -401,6 +384,12 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
           </p>
         ) : null}
       </div>
+
+      <ReturnRentalModal
+        open={!!returnRentalId}
+        rental={rows.find(r => r.id === returnRentalId) || null}
+        onClose={() => setReturnRentalId(null)}
+      />
     </div>
   );
 }
