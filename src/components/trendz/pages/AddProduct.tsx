@@ -170,6 +170,29 @@ export function AddProduct({
     setAttributes(next);
   };
 
+  const generateSerializedUnits = () => {
+    const qtyStr = window.prompt("How many physical units do you want to track for this product?");
+    if (!qtyStr) return;
+    const qty = parseInt(qtyStr, 10);
+    if (isNaN(qty) || qty <= 0 || qty > 500) {
+      toast.error("Please enter a valid number between 1 and 500");
+      return;
+    }
+    
+    const unitValues = Array.from({ length: qty }, (_, i) => String(i + 1).padStart(3, '0'));
+    
+    const existingIndex = attributes.findIndex(a => a.name.toLowerCase() === "unit");
+    if (existingIndex >= 0) {
+      const next = [...attributes];
+      next[existingIndex] = { ...next[existingIndex], values: unitValues };
+      setAttributes(next);
+    } else {
+      setAttributes([...attributes, { name: "Unit", values: unitValues }]);
+    }
+    
+    toast.success(`Added Unit attribute with ${qty} units`);
+  };
+
   const generateVariations = () => {
     if (attributes.length === 0 || attributes.some((a) => !a.name.trim() || a.values.length === 0)) {
       toast.error("Please define valid attributes with values first.");
@@ -513,6 +536,14 @@ export function AddProduct({
                 >
                   <Plus className="h-4 w-4" /> Add Attribute
                 </button>
+                <button
+                  onClick={generateSerializedUnits}
+                  className="flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm text-foreground hover:bg-white/[0.05]"
+                >
+                  <Plus className="h-4 w-4" /> Auto-Generate Serial Units
+                </button>
+              </div>
+              <div className="flex justify-end pt-2">
                 <button onClick={generateVariations} className={goldButtonClass}>
                   Generate Variations
                 </button>
