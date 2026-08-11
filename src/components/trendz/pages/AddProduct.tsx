@@ -67,6 +67,8 @@ export function AddProduct({
   const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
   const [variations, setVariations] = useState<ProductVariation[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [showUnitPrompt, setShowUnitPrompt] = useState(false);
+  const [unitQty, setUnitQty] = useState("");
   const supabase = createClient();
 
   useEffect(() => {
@@ -99,6 +101,8 @@ export function AddProduct({
     }
     setTab("basic");
     setError("");
+    setShowUnitPrompt(false);
+    setUnitQty("");
   }, [productToEdit, initialCategory, branches]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -171,9 +175,7 @@ export function AddProduct({
   };
 
   const generateSerializedUnits = () => {
-    const qtyStr = window.prompt("How many physical units do you want to track for this product?");
-    if (!qtyStr) return;
-    const qty = parseInt(qtyStr, 10);
+    const qty = parseInt(unitQty, 10);
     if (isNaN(qty) || qty <= 0 || qty > 500) {
       toast.error("Please enter a valid number between 1 and 500");
       return;
@@ -191,6 +193,8 @@ export function AddProduct({
     }
     
     toast.success(`Added Unit attribute with ${qty} units`);
+    setShowUnitPrompt(false);
+    setUnitQty("");
   };
 
   const generateVariations = () => {
@@ -529,19 +533,50 @@ export function AddProduct({
                   </div>
                 ))}
               </div>
-              <div className="flex items-center justify-between pt-2">
-                <button
-                  onClick={addAttribute}
-                  className="flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm text-foreground hover:bg-white/[0.05]"
-                >
-                  <Plus className="h-4 w-4" /> Add Attribute
-                </button>
-                <button
-                  onClick={generateSerializedUnits}
-                  className="flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm text-foreground hover:bg-white/[0.05]"
-                >
-                  <Plus className="h-4 w-4" /> Auto-Generate Serial Units
-                </button>
+              <div className="flex flex-col gap-4 pt-2">
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={addAttribute}
+                    className="flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm text-foreground hover:bg-white/[0.05]"
+                  >
+                    <Plus className="h-4 w-4" /> Add Attribute
+                  </button>
+                  <button
+                    onClick={() => setShowUnitPrompt(true)}
+                    className="flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm text-foreground hover:bg-white/[0.05]"
+                  >
+                    <Plus className="h-4 w-4" /> Auto-Generate Serial Units
+                  </button>
+                </div>
+                
+                {showUnitPrompt && (
+                  <div className="flex items-center justify-end gap-3 rounded-lg border border-border bg-white/[0.02] p-4">
+                    <span className="text-sm text-muted-foreground">How many physical units?</span>
+                    <input 
+                      type="number"
+                      className="w-24 rounded-md border border-border bg-transparent px-3 py-1.5 text-sm outline-none focus:border-gold"
+                      value={unitQty}
+                      onChange={(e) => setUnitQty(e.target.value)}
+                      placeholder="e.g. 5"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') generateSerializedUnits();
+                      }}
+                    />
+                    <button 
+                      onClick={() => setShowUnitPrompt(false)}
+                      className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-white/[0.05]"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      onClick={generateSerializedUnits}
+                      className="rounded-md bg-gold px-3 py-1.5 text-sm font-medium text-black hover:bg-gold/90"
+                    >
+                      Generate
+                    </button>
+                  </div>
+                )}
               </div>
               <div className="flex justify-end pt-2">
                 <button onClick={generateVariations} className={goldButtonClass}>
