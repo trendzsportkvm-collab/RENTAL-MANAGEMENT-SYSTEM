@@ -61,7 +61,7 @@ export function AddProduct({
   const [dailyRate, setDailyRate] = useState(0);
   const [description, setDescription] = useState("");
   const [image, setImage] = useState("");
-  const [type, setType] = useState<"simple" | "variable">("simple");
+  const [type, setType] = useState<"simple" | "variable">("variable");
   const [stock, setStock] = useState<Record<string, number>>({});
 
   const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
@@ -88,7 +88,7 @@ export function AddProduct({
       setDailyRate(0);
       setDescription("");
       setImage("");
-      setType("simple");
+      setType("variable");
       
       const initialStock: Record<string, number> = {};
       branches.forEach(b => initialStock[b] = 0);
@@ -380,8 +380,8 @@ export function AddProduct({
                     value={type}
                     onChange={(e) => setType(e.target.value as "simple" | "variable")}
                   >
-                    <option value="simple">Simple Product</option>
                     <option value="variable">Variable Product</option>
+                    <option value="simple">Simple Product</option>
                   </select>
                 </Field>
                 <Field label="Description">
