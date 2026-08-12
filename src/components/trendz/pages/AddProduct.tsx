@@ -61,9 +61,6 @@ export function AddProduct({
   const [dailyRate, setDailyRate] = useState(0);
   const [description, setDescription] = useState("");
   const [image, setImage] = useState("");
-  const [type, setType] = useState<"simple" | "variable">("variable");
-  const [stock, setStock] = useState<Record<string, number>>({});
-
   const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
   const [variations, setVariations] = useState<ProductVariation[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -79,8 +76,6 @@ export function AddProduct({
       setDailyRate(productToEdit.dailyRate);
       setDescription(productToEdit.description || "");
       setImage(productToEdit.image);
-      setType(productToEdit.type);
-      setStock(productToEdit.stock || {});
       setAttributes(productToEdit.attributes || []);
       setVariations(productToEdit.variations || []);
     } else {
@@ -90,11 +85,6 @@ export function AddProduct({
       setDailyRate(0);
       setDescription("");
       setImage("");
-      setType("variable");
-      
-      const initialStock: Record<string, number> = {};
-      branches.forEach(b => initialStock[b] = 0);
-      setStock(initialStock);
       
       setAttributes([]);
       setVariations([]);
@@ -252,8 +242,8 @@ export function AddProduct({
     }
     
     if (!category.trim()) return setError("Category is required");
-    if (type === "variable" && variations.length === 0) {
-      return setError("Please generate variations for this variable product");
+    if (variations.length === 0) {
+      return setError("Please generate variations for this product");
     }
 
     const payload: Omit<Product, "id"> = {
@@ -263,10 +253,8 @@ export function AddProduct({
       dailyRate,
       description,
       image,
-      type,
-      stock: type === "simple" ? stock : {},
-      attributes: type === "variable" ? attributes : [],
-      variations: type === "variable" ? variations : [],
+      attributes,
+      variations,
     };
 
     if (productToEdit) {
@@ -315,7 +303,6 @@ export function AddProduct({
       <div className="glass flex flex-col overflow-hidden rounded-xl">
         <div className="flex border-b border-border bg-white/[0.02]">
           {(["basic", "attributes", "variations"] as Tab[]).map((t) => {
-            if (type === "simple" && t !== "basic") return null;
             return (
               <button
                 key={t}
@@ -378,16 +365,6 @@ export function AddProduct({
                     />
                   </Field>
                 </div>
-                <Field label="Product Type">
-                  <select
-                    className={inputClass}
-                    value={type}
-                    onChange={(e) => setType(e.target.value as "simple" | "variable")}
-                  >
-                    <option value="variable">Variable Product</option>
-                    <option value="simple">Simple Product</option>
-                  </select>
-                </Field>
                 <Field label="Description">
                   <textarea
                     rows={4}
@@ -425,22 +402,6 @@ export function AddProduct({
                   </div>
                 </Field>
 
-                {type === "simple" && (
-                  <div className="space-y-5 rounded-xl border border-border p-6 bg-white/[0.01]">
-                    <h3 className="font-display text-sm font-medium text-gold">Simple Product Stock</h3>
-                    {branches.map((b) => (
-                      <Field key={b} label={`${b} Stock`}>
-                        <input
-                          type="number"
-                          min="0"
-                          className={monoInputClass}
-                          value={stock[b] === 0 ? "" : (stock[b] || "")}
-                          onChange={(e) => setStock({ ...stock, [b]: Number(e.target.value) })}
-                        />
-                      </Field>
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
           )}

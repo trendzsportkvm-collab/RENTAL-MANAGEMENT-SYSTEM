@@ -15,13 +15,9 @@ export function AllProducts({
   const { products, branches, isLoading, deleteProduct } = useTrendz();
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [productTypeFilter, setProductTypeFilter] = useState("all");
   const [stockFilter, setStockFilter] = useState("all");
 
   const totalOf = (p: Product) => {
-    if (p.type === "simple") {
-      return Object.values(p.stock).reduce((a, b) => a + b, 0);
-    }
     return (p.variations || []).reduce((sum, v) => {
       if (!v.enabled) return sum;
       return sum + Object.values(v.stock).reduce((a, b) => a + b, 0);
@@ -38,11 +34,10 @@ export function AllProducts({
       if (stockFilter === "out" && total > 0) return false;
       
       if (categoryFilter !== "all" && p.category !== categoryFilter) return false;
-      if (productTypeFilter !== "all" && p.type !== productTypeFilter) return false;
       
       return true;
     });
-  }, [products, query, categoryFilter, productTypeFilter, stockFilter]);
+  }, [products, query, categoryFilter, stockFilter]);
 
   // Unique categories for the dropdown
   const uniqueCategories = useMemo(() => {
@@ -74,12 +69,6 @@ export function AllProducts({
             {uniqueCategories.map(c => (
               <option key={c} value={c}>{c}</option>
             ))}
-          </select>
-          
-          <select className={inputClass + " w-40"} value={productTypeFilter} onChange={(e) => setProductTypeFilter(e.target.value)}>
-            <option value="all">Filter by product type</option>
-            <option value="simple">Simple product</option>
-            <option value="variable">Variable product</option>
           </select>
           
           <select className={inputClass + " w-40"} value={stockFilter} onChange={(e) => setStockFilter(e.target.value)}>
@@ -146,9 +135,6 @@ export function AllProducts({
                     <button onClick={() => onOpen(p)} className="font-medium text-gold hover:underline">
                       {p.name}
                     </button>
-                    {p.type === "variable" && (
-                      <span className="ml-2 text-xs text-muted-foreground">— Variable</span>
-                    )}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {p.sku || "—"}
@@ -159,21 +145,17 @@ export function AllProducts({
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    {p.type === "simple" ? (
-                      <span className="font-mono text-muted-foreground">{inr(p.dailyRate)}</span>
-                    ) : (
-                      <div className="flex flex-col text-xs font-mono text-muted-foreground">
-                        {p.variations && p.variations.length > 0 ? (
-                          <>
-                            <span>{inr(Math.min(...p.variations.map(v => v.dailyRate)))}</span>
-                            <span>—</span>
-                            <span>{inr(Math.max(...p.variations.map(v => v.dailyRate)))}</span>
-                          </>
-                        ) : (
-                          "—"
-                        )}
-                      </div>
-                    )}
+                    <div className="flex flex-col text-xs font-mono text-muted-foreground">
+                      {p.variations && p.variations.length > 0 ? (
+                        <>
+                          <span>{inr(Math.min(...p.variations.map(v => v.dailyRate)))}</span>
+                          <span>—</span>
+                          <span>{inr(Math.max(...p.variations.map(v => v.dailyRate)))}</span>
+                        </>
+                      ) : (
+                        "—"
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-gold hover:underline cursor-pointer">
                     {p.category || "Uncategorized"}
@@ -189,7 +171,7 @@ export function AllProducts({
                   </td>
                   <td className="px-4 py-3 text-xs text-gold">
                     {branches.map(b => {
-                      const qty = p.type === "simple" ? p.stock[b] : (p.variations || []).reduce((sum, v) => sum + (v.stock[b] || 0), 0);
+                      const qty = (p.variations || []).reduce((sum, v) => sum + (v.stock[b] || 0), 0);
                       if (qty && qty > 0) return <div key={b} className="hover:underline cursor-pointer">{b}</div>;
                       return null;
                     })}

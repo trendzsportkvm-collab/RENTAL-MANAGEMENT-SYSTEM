@@ -42,9 +42,6 @@ export function StockLocations() {
 
   const getProductCount = (locName: string) => {
     return products.filter(p => {
-      if (p.type === "simple") {
-        return (p.stock[locName] ?? 0) > 0;
-      }
       return (p.variations || []).some(v => (v.stock[locName] ?? 0) > 0);
     }).length;
   };

@@ -24,10 +24,7 @@ export interface Product {
   dailyRate: number;
   image: string;
   description?: string;
-  type: "simple" | "variable";
   category: string;
-  /** branch name -> quantity in stock (for simple products) */
-  stock: Record<string, number>;
   attributes?: ProductAttribute[];
   variations?: ProductVariation[];
 }

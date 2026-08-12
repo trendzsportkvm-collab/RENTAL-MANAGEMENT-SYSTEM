@@ -25,7 +25,7 @@ export function ScanLookup({ onPutOut }: { onPutOut: (p: Product, branch?: strin
   const [returnRentalId, setReturnRentalId] = useState<string | null>(null);
 
   const exactSearchQ = query.trim().toLowerCase();
-  const matchedVariationIds = result?.type === "variable" && result.variations?.some(v => v.sku.toLowerCase() === exactSearchQ)
+  const matchedVariationIds = result?.variations?.some(v => v.sku.toLowerCase() === exactSearchQ)
     ? result.variations.filter(v => v.sku.toLowerCase() === exactSearchQ).map(v => v.id)
     : null;
 
@@ -36,7 +36,7 @@ export function ScanLookup({ onPutOut }: { onPutOut: (p: Product, branch?: strin
           return matchedVariationIds.includes(r.variationId);
         }
         if (r.productId === result.id) return true;
-        if (result.type === "variable" && result.variations && r.variationId) {
+        if (result.variations && r.variationId) {
           return result.variations.some(v => v.id === r.variationId);
         }
         return false;
@@ -130,14 +130,10 @@ export function ScanLookup({ onPutOut }: { onPutOut: (p: Product, branch?: strin
           )}
 
           {result ? (() => {
-            const isVariable = result.type === "variable";
-            const totalStock = isVariable
-              ? (result.variations || []).reduce((sum, v) => {
-                  if (!v.enabled) return sum;
-                  return sum + Object.values(v.stock).reduce((a, b) => a + b, 0);
-                }, 0)
-              : Object.values(result.stock).reduce((a, b) => a + b, 0);
-            const hasStock = totalStock > 0;
+            const totalStock = (result.variations || []).reduce((sum, v) => {
+                if (!v.enabled) return sum;
+                return sum + Object.values(v.stock).reduce((a, b) => a + b, 0);
+              }, 0);
 
             return (
             <article className="glass mt-6 p-5">
@@ -154,16 +150,14 @@ export function ScanLookup({ onPutOut }: { onPutOut: (p: Product, branch?: strin
                   <h2 className="font-display text-3xl font-semibold">{result.name}</h2>
                   <p className="mt-1 font-mono text-xs text-muted-foreground">{result.sku}</p>
                   <p className="mt-3 font-mono text-lg text-gold">{inr(result.dailyRate)}/day</p>
-                  {isVariable && (
-                    <span className="mt-2 inline-block rounded-full border border-gold/30 bg-gold/10 px-2.5 py-0.5 text-xs font-medium text-gold">
-                      Variable · {(result.variations || []).filter(v => v.enabled).length} variants
-                    </span>
-                  )}
+                  <span className="mt-2 inline-block rounded-full border border-gold/30 bg-gold/10 px-2.5 py-0.5 text-xs font-medium text-gold">
+                    Variable · {(result.variations || []).filter(v => v.enabled).length} variants
+                  </span>
                 </div>
               </div>
 
               <div className="mt-6 overflow-hidden rounded-lg border border-border">
-                {isVariable ? (() => {
+                {(() => {
                   let displayVariations = (result.variations || []).filter(v => v.enabled);
                   const exactQ = query.trim().toLowerCase();
                   if (displayVariations.some(v => v.sku.toLowerCase() === exactQ)) {
@@ -223,38 +217,7 @@ export function ScanLookup({ onPutOut }: { onPutOut: (p: Product, branch?: strin
                     </tbody>
                   </table>
                   );
-                })() : (
-                  <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-5 bg-white/[0.01]">
-                    <div>
-                      <h3 className="text-[10px] font-medium tracking-[0.15em] text-muted-foreground uppercase mb-3">
-                        {profile?.role === "super_admin" ? "Stock by Branch" : "Available Stock"}
-                      </h3>
-                      {profile?.role === "super_admin" ? (
-                        <div className="flex flex-wrap gap-x-6 gap-y-3">
-                          {Object.entries(result.stock).map(([b, q]) => (
-                            <div key={b} className="flex flex-col">
-                              <span className="text-[10px] text-muted-foreground uppercase mb-1">{b}</span>
-                              <StockBadge qty={q} />
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <StockBadge qty={totalStock} />
-                      )}
-                    </div>
-                    <button
-                      onClick={() => onPutOut(result)}
-                      disabled={!hasStock}
-                      className={`rounded px-5 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
-                        hasStock
-                          ? "bg-gold text-white hover:bg-gold/90 shadow-sm" 
-                          : "bg-white/[0.05] text-muted-foreground cursor-not-allowed"
-                      }`}
-                    >
-                      {hasStock ? "Rent Item" : "Out of Stock"}
-                    </button>
-                  </div>
-                )}
+                })()}
               </div>
 
               {activeRentals.length > 0 && (

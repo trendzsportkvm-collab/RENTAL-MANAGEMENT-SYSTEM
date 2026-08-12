@@ -14,7 +14,6 @@ interface FlattenedRental {
   dailyRate: number;
   image: string;
   stock: Record<string, number>;
-  type: "simple" | "variable";
 }
 
 export function AllRentals({ onOpen }: { onOpen?: (p: Product) => void }) {
@@ -26,29 +25,15 @@ export function AllRentals({ onOpen }: { onOpen?: (p: Product) => void }) {
 
   const flattenedRentals = useMemo(() => {
     return products.flatMap((p) => {
-      if (p.type === "simple") {
-        return [{
-          id: p.id,
-          productId: p.id,
-          name: p.name,
-          sku: p.sku,
-          dailyRate: p.dailyRate,
-          image: p.image,
-          stock: p.stock,
-          type: p.type,
-        }];
-      } else {
-        return (p.variations || []).filter(v => v.enabled).map(v => ({
-          id: v.id,
-          productId: p.id,
-          name: `${p.name} - ${v.name}`,
-          sku: v.sku,
-          dailyRate: v.dailyRate,
-          image: p.image,
-          stock: v.stock,
-          type: p.type,
-        }));
-      }
+      return (p.variations || []).filter(v => v.enabled).map(v => ({
+        id: v.id,
+        productId: p.id,
+        name: `${p.name} - ${v.name}`,
+        sku: v.sku,
+        dailyRate: v.dailyRate,
+        image: p.image,
+        stock: v.stock,
+      }));
     });
   }, [products]);
 
@@ -165,11 +150,6 @@ export function AllRentals({ onOpen }: { onOpen?: (p: Product) => void }) {
                     <div className="mt-auto pt-4">
                       <div className="flex items-center gap-2 mb-2">
                         <p className="font-mono text-sm text-gold">{inr(r.dailyRate)}/day</p>
-                        {r.type === "variable" && (
-                          <span className="rounded bg-white/[0.05] px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
-                            Variation
-                          </span>
-                        )}
                       </div>
                       <div className="flex flex-wrap gap-1.5">
                         {branches.map((b) => {
@@ -205,11 +185,6 @@ export function AllRentals({ onOpen }: { onOpen?: (p: Product) => void }) {
                   <div className="min-w-[10rem] flex-1">
                     <h3 className="font-display text-base font-medium">
                       {r.name}{" "}
-                      {r.type === "variable" && (
-                        <span className="ml-2 rounded bg-white/[0.05] px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">
-                          Variation
-                        </span>
-                      )}
                     </h3>
                     <p className="font-mono text-xs text-muted-foreground">{r.sku}</p>
                   </div>

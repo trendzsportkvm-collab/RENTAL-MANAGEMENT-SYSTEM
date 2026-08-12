@@ -88,12 +88,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
           dailyRate: p.daily_rate || 0,
           image: p.image_url || "https://placehold.co/600x600/eeeeee/999999?text=No+Image",
           description: p.description,
-          type: p.type as any,
           category: p.categories?.name || "Uncategorized",
-          stock: (p.product_stock || []).reduce((acc: any, s: any) => {
-            if (s.branches?.name) acc[s.branches.name] = s.quantity;
-            return acc;
-          }, {}),
           variations: (p.product_variations || []).map((v: any) => ({
             id: v.id,
             name: v.name,
@@ -178,7 +173,6 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
             sku: draft.sku,
             daily_rate: draft.dailyRate,
             image_url: draft.image,
-            type: draft.type,
             description: draft.description,
             category_id: categoryId,
           })
@@ -196,33 +190,8 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
           prev.map((p) => (p.id === product.id ? { ...p, id: realId } : p))
         );
 
-        // 3. Save stock quantities for simple products
-        if (draft.type === "simple" && Object.keys(draft.stock).length > 0) {
-          const { data: branches } = await supabase
-            .from("branches")
-            .select("id, name");
-          if (branches) {
-            const stockRows = Object.entries(draft.stock)
-              .filter(([, qty]) => qty > 0)
-              .map(([branchName, qty]) => {
-                const branch = branches.find((b) => b.name === branchName);
-                return branch
-                  ? { product_id: realId, branch_id: branch.id, quantity: qty }
-                  : null;
-              })
-              .filter(Boolean);
-
-            if (stockRows.length > 0) {
-              const { error: stockErr } = await supabase
-                .from("product_stock")
-                .insert(stockRows as any[]);
-              if (stockErr) console.error("Failed to save stock:", stockErr);
-            }
-          }
-        }
-
-        // 4. Save variations + their stock for variable products
-        if (draft.type === "variable" && draft.variations?.length) {
+        // 3. Save variations + their stock
+        if (draft.variations?.length) {
           const { data: branches } = await supabase
             .from("branches")
             .select("id, name");
@@ -289,19 +258,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
         const { data: branches } = await supabase.from("branches").select("id, name");
         if (!branches) return;
 
-        if (patch.type === 'simple' && patch.stock) {
-          await supabase.from("product_stock").delete().eq("product_id", id);
-          const stockRows = Object.entries(patch.stock)
-            .filter(([, qty]) => qty > 0)
-            .map(([branchName, qty]) => {
-              const branch = branches.find((b) => b.name === branchName);
-              return branch ? { product_id: id, branch_id: branch.id, quantity: qty } : null;
-            }).filter(Boolean);
-            
-          if (stockRows.length > 0) await supabase.from("product_stock").insert(stockRows as any[]);
-        }
-        
-        if (patch.type === 'variable' && patch.variations) {
+        if (patch.variations) {
           for (const v of patch.variations) {
             try {
               const isNew = v.id.startsWith('v');
@@ -521,7 +478,6 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
     for (const [baseSku, groupRows] of Object.entries(groups)) {
       const firstRow = groupRows[0];
       const name = firstRow.name?.trim();
-      const type = firstRow.type?.trim().toLowerCase() === 'variable' ? 'variable' : 'simple';
       const categoryName = firstRow.category?.trim() || "Uncategorized";
       const catId = categoryMap.get(categoryName.toLowerCase()) || null;
       const imageUrl = firstRow["image url"]?.trim() || "https://placehold.co/600x600/eeeeee/999999?text=No+Image";
@@ -540,7 +496,6 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
         id: productId,
         sku: baseSku,
         name,
-        type,
         category_id: catId,
         image_url: imageUrl,
         daily_rate: rate,
@@ -551,30 +506,13 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
         id: productId,
         sku: baseSku,
         name,
-        type,
         category: categoryName,
         image: imageUrl,
         dailyRate: rate,
         description: desc,
-        stock: {},
         variations: []
       };
       
-      if (type === 'simple') {
-        const row = groupRows[0];
-        Object.entries(row).forEach(([key, val]) => {
-          if (key.startsWith("stock:") && val) {
-            const branchName = key.split(":")[1].trim();
-            const branchId = branchMap.get(branchName.toLowerCase());
-            const qty = Number(val);
-            if (branchId && qty >= 0) {
-              const stockId = existingStock?.find(s => s.product_id === productId && s.branch_id === branchId)?.id || crypto.randomUUID();
-              stockToUpsert.push({ id: stockId, product_id: productId, branch_id: branchId, quantity: qty });
-              localProduct.stock[branchName] = qty;
-            }
-          }
-        });
-      } else {
         groupRows.forEach(row => {
           const vName = row["variation name"]?.trim();
           const vSku = row["variation sku"]?.trim().toUpperCase();
@@ -618,7 +556,6 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
             attributes: {}
           });
         });
-      }
       
       newLocalProducts.push(localProduct);
     }

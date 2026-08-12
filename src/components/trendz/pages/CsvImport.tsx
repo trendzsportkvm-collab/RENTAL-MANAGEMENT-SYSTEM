@@ -83,21 +83,19 @@ export function CsvImport() {
           <button
             className={ghostButtonClass + " py-2"}
             onClick={() => {
-              const headers = ["Type", "Name", "SKU", "Variation Name", "Variation SKU", "Category", "Daily Rate", "Description", "Image URL"];
+              const headers = ["Name", "SKU", "Variation Name", "Variation SKU", "Category", "Daily Rate", "Description", "Image URL"];
               const branches = locations.filter(l => l.enabled);
               branches.forEach(b => headers.push(`Stock: ${b.name}`));
               
-              const simpleRow = ["simple", "Red Bridal Lehenga", "LEH-001", "", "", "Bridal", 2499, "Heavy embroidery", ""];
-              const varRow1 = ["variable", "Groom Sherwani", "SHR-001", "Size M", "SHR-001-M", "Mens", 1899, "", ""];
-              const varRow2 = ["variable", "Groom Sherwani", "SHR-001", "Size L", "SHR-001-L", "Mens", 1899, "", ""];
+              const varRow1 = ["Groom Sherwani", "SHR-001", "Size M", "SHR-001-M", "Mens", 1899, "", ""];
+              const varRow2 = ["Groom Sherwani", "SHR-001", "Size L", "SHR-001-L", "Mens", 1899, "", ""];
               
               branches.forEach(() => {
-                simpleRow.push("10");
                 varRow1.push("5");
                 varRow2.push("2");
               });
               
-              downloadCSV("trendz-import-template.csv", [headers, simpleRow, varRow1, varRow2]);
+              downloadCSV("trendz-import-template.csv", [headers, varRow1, varRow2]);
             }}
           >
             <Download className="h-3.5 w-3.5" /> Download Template

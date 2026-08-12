@@ -25,23 +25,15 @@ export function RentalFormModal({
   const [variationId, setVariationId] = useState("");
 
   const selectedVariation = useMemo(
-    () => (product?.type === "variable" ? product.variations?.find((v) => v.id === variationId) : undefined),
+    () => product?.variations?.find((v) => v.id === variationId),
     [product, variationId]
   );
 
   const stocked = useMemo(() => {
-    if (!product) return [];
-    if (product.type === "simple") {
-      return Object.entries(product.stock)
-        .filter(([, q]) => q > 0)
-        .map(([b]) => b);
-    }
-    if (selectedVariation) {
-      return Object.entries(selectedVariation.stock)
-        .filter(([, q]) => q > 0)
-        .map(([b]) => b);
-    }
-    return [];
+    if (!product || !selectedVariation) return [];
+    return Object.entries(selectedVariation.stock)
+      .filter(([, q]) => q > 0)
+      .map(([b]) => b);
   }, [product, selectedVariation]);
 
   const [branch, setBranch] = useState("");
@@ -76,19 +68,19 @@ export function RentalFormModal({
 
   useEffect(() => {
     if (!open || !product) return;
-    if (product.type === "variable" && !variationId) {
+    if (!variationId) {
       setBranch("");
       return;
     }
     const initialBranch = defaultBranch && stocked.includes(defaultBranch) ? defaultBranch : stocked[0] ?? "";
     setBranch(initialBranch);
     
-    if (product.type === "variable" && selectedVariation) {
+    if (selectedVariation) {
       setDailyRate(selectedVariation.dailyRate);
     }
   }, [open, product, defaultBranch, stocked, variationId, selectedVariation]);
 
-  const available = product && branch ? (product.type === "simple" ? (product.stock[branch] ?? 0) : (selectedVariation?.stock[branch] ?? 0)) : 0;
+  const available = product && branch && selectedVariation ? (selectedVariation.stock[branch] ?? 0) : 0;
   const days = rentDate && dueDate && dueDate > rentDate ? daysBetween(rentDate, dueDate) : 1;
   const computed = Math.max(0, days * dailyRate * (qty || 1) - discount);
 
@@ -102,7 +94,7 @@ export function RentalFormModal({
 
   const submit = async () => {
     const next: Record<string, string> = {};
-    if (product.type === "variable" && !variationId) next.variationId = "Please select a variation";
+    if (!variationId) next.variationId = "Please select a variation";
     if (!branch) next.branch = "Select a branch with stock";
     if (!customerName.trim()) next.customerName = "Customer name is required";
     if (!customerPhone.trim()) {
@@ -159,18 +151,16 @@ export function RentalFormModal({
         </DialogHeader>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          {product.type === "variable" && (
-            <Field label="Variation" error={errors.variationId} className="sm:col-span-2">
-              <select className={inputClass} value={variationId} onChange={(e) => setVariationId(e.target.value)}>
-                <option value="">Select a variation</option>
-                {product.variations?.filter(v => v.enabled).map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.name} · {Object.values(v.stock).reduce((a, b) => a + b, 0)} total in stock
-                  </option>
-                ))}
-              </select>
-            </Field>
-          )}
+          <Field label="Variation" error={errors.variationId} className="sm:col-span-2">
+            <select className={inputClass} value={variationId} onChange={(e) => setVariationId(e.target.value)}>
+              <option value="">Select a variation</option>
+              {product.variations?.filter(v => v.enabled).map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name} · {Object.values(v.stock).reduce((a, b) => a + b, 0)} total in stock
+                </option>
+              ))}
+            </select>
+          </Field>
 
           <Field label="Product">
             <input className={inputClass} value={product.name} readOnly />
@@ -183,7 +173,7 @@ export function RentalFormModal({
             <select className={inputClass} value={branch} onChange={(e) => setBranch(e.target.value)}>
               {stocked.length === 0 ? <option value="">No stock available</option> : null}
               {stocked.map((b) => {
-                const bStock = product.type === "simple" ? product.stock[b] : (selectedVariation?.stock[b] ?? 0);
+                const bStock = selectedVariation?.stock[b] ?? 0;
                 return (
                   <option key={b} value={b}>
                     {b} · {bStock} in stock
