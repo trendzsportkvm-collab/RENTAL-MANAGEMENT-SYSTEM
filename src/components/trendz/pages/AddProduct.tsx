@@ -269,8 +269,8 @@ export function AddProduct({
 
   return (
     <div className="mx-auto max-w-5xl">
-      <header className="mb-8 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <header className="mb-8 flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-4 sm:items-center">
           <button
             onClick={onClose}
             className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-white/[0.02] text-muted-foreground transition-colors hover:bg-white/[0.05] hover:text-foreground"
@@ -286,8 +286,8 @@ export function AddProduct({
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <p className="text-sm text-rust mr-2">{error}</p>
+        <div className="flex w-full flex-wrap items-center gap-4 sm:w-auto">
+          {error && <p className="w-full text-sm text-rust sm:w-auto sm:mr-2">{error}</p>}
           <button
             className="rounded-md border border-border px-6 py-2 text-sm font-medium hover:bg-white/[0.05]"
             onClick={onClose}
@@ -301,13 +301,13 @@ export function AddProduct({
       </header>
 
       <div className="glass flex flex-col overflow-hidden rounded-xl">
-        <div className="flex border-b border-border bg-white/[0.02]">
+        <div className="flex overflow-x-auto border-b border-border bg-white/[0.02] scrollbar-hide">
           {(["basic", "attributes", "variations"] as Tab[]).map((t) => {
             return (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`px-6 py-4 text-sm font-medium transition-colors ${
+                className={`whitespace-nowrap px-6 py-4 text-sm font-medium transition-colors ${
                   tab === t
                     ? "border-b-2 border-gold text-gold"
                     : "text-muted-foreground hover:text-foreground"
@@ -323,7 +323,7 @@ export function AddProduct({
 
         <div className="p-8">
           {tab === "basic" && (
-            <div className="grid gap-10 sm:grid-cols-2">
+            <div className="grid gap-10 lg:grid-cols-2">
               <div className="space-y-6">
                 <Field label="Product Name">
                   <input
@@ -347,7 +347,7 @@ export function AddProduct({
                     ))}
                   </datalist>
                 </Field>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field label="Base SKU">
                     <input
                       className={monoInputClass}
@@ -495,27 +495,27 @@ export function AddProduct({
                 ))}
               </div>
               <div className="flex flex-col gap-4 pt-2">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                   <button
                     onClick={addAttribute}
-                    className="flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm text-foreground hover:bg-white/[0.05]"
+                    className="flex items-center justify-center gap-2 rounded-md border border-border px-4 py-2 text-sm text-foreground hover:bg-white/[0.05]"
                   >
                     <Plus className="h-4 w-4" /> Add Attribute
                   </button>
                   <button
                     onClick={() => setShowUnitPrompt(true)}
-                    className="flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm text-foreground hover:bg-white/[0.05]"
+                    className="flex items-center justify-center gap-2 rounded-md border border-border px-4 py-2 text-sm text-foreground hover:bg-white/[0.05]"
                   >
                     <Plus className="h-4 w-4" /> Auto-Generate Serial Units
                   </button>
                 </div>
                 
                 {showUnitPrompt && (
-                  <div className="flex items-center justify-end gap-3 rounded-lg border border-border bg-white/[0.02] p-4">
-                    <span className="text-sm text-muted-foreground">How many physical units?</span>
+                  <div className="flex flex-wrap items-center justify-end gap-3 rounded-lg border border-border bg-white/[0.02] p-4 mt-2">
+                    <span className="text-sm text-muted-foreground w-full sm:w-auto">How many physical units?</span>
                     <input 
                       type="number"
-                      className="w-24 rounded-md border border-border bg-transparent px-3 py-1.5 text-sm outline-none focus:border-gold"
+                      className="w-full sm:w-24 rounded-md border border-border bg-transparent px-3 py-1.5 text-sm outline-none focus:border-gold"
                       value={unitQty}
                       onChange={(e) => setUnitQty(e.target.value)}
                       placeholder="e.g. 5"
@@ -524,18 +524,20 @@ export function AddProduct({
                         if (e.key === 'Enter') generateSerializedUnits();
                       }}
                     />
-                    <button 
-                      onClick={() => setShowUnitPrompt(false)}
-                      className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-white/[0.05]"
-                    >
-                      Cancel
-                    </button>
-                    <button 
-                      onClick={generateSerializedUnits}
-                      className="rounded-md bg-gold px-3 py-1.5 text-sm font-medium text-black hover:bg-gold/90"
-                    >
-                      Generate
-                    </button>
+                    <div className="flex w-full sm:w-auto justify-end gap-3">
+                      <button 
+                        onClick={() => setShowUnitPrompt(false)}
+                        className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-white/[0.05]"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        onClick={generateSerializedUnits}
+                        className="rounded-md bg-gold px-3 py-1.5 text-sm font-medium text-black hover:bg-gold/90"
+                      >
+                        Generate
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -587,7 +589,7 @@ export function AddProduct({
                           </button>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
+                      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
                         <Field label="SKU">
                           <input
                             className={monoInputClass}

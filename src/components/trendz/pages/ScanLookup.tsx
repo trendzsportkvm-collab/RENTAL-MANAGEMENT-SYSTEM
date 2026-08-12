@@ -156,7 +156,7 @@ export function ScanLookup({ onPutOut }: { onPutOut: (p: Product, branch?: strin
                 </div>
               </div>
 
-              <div className="mt-6 overflow-hidden rounded-lg border border-border">
+              <div className="mt-6 overflow-x-auto rounded-lg border border-border">
                 {(() => {
                   let displayVariations = (result.variations || []).filter(v => v.enabled);
                   const exactQ = query.trim().toLowerCase();

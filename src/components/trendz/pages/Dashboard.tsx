@@ -109,7 +109,7 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
     <div>
       <header>
         <h1 className="font-display text-3xl font-semibold">Dashboard</h1>
-        <div className="mt-6 flex items-center gap-2 border-b border-border">
+        <div className="mt-6 flex flex-wrap items-center gap-2 border-b border-border">
           <button
             onClick={() => setActiveTab("rental")}
             className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === "rental" ? "border-b-2 border-gold text-foreground" : "text-muted-foreground hover:text-foreground"}`}
@@ -151,7 +151,7 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
         <h2 className="text-xl font-semibold">
           {activeTab === "rental" ? "Active Rentals" : "Ledger Records"}
         </h2>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
           <select
             className={inputClass + " w-36 py-1.5"}
             value={sortKey}

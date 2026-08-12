@@ -79,7 +79,7 @@ export function AllProducts({
           <button className="h-9 px-4 rounded border border-border text-xs font-medium hover:bg-white/[0.05] transition-colors">Filter</button>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <input
             className={inputClass + " w-48"}
             placeholder="Search products…"
@@ -178,7 +178,7 @@ export function AllProducts({
                     {stockNum === 0 && <span className="text-muted-foreground">—</span>}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex flex-wrap items-center justify-end gap-2">
                       <button 
                         onClick={() => onEdit(p.id)}
                         className="rounded border border-gold/30 bg-gold/10 px-3 py-1.5 text-xs font-medium text-gold hover:bg-gold/20 transition-colors"
