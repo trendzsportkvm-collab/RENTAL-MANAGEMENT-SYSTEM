@@ -463,7 +463,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
     setRentals((prev) => prev.map((r) => r.id === id ? { 
       ...r, 
       status: "returned" as const, 
-      paymentStatus: payload.payment_status as const, 
+      paymentStatus: payload.payment_status, 
       condition: payload.condition, 
       returnedOn: payload.returned_on,
       total: payload.total,
