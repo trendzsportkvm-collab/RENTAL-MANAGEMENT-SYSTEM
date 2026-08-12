@@ -27,7 +27,11 @@ export const daysBetween = (fromISO: string, toISO: string) => {
 export const isOverdue = (r: Rental) =>
   r.status === "out" && r.dueDate < todayISO();
 
-export const balanceOf = (r: Rental) => Math.max(0, r.total - r.advance);
+export const balanceOf = (r: Rental) => {
+  if (r.paymentStatus === "paid") return 0;
+  if (r.paymentStatus === "unpaid") return r.total;
+  return Math.max(0, r.total - r.advance);
+};
 
 export const paymentLabel = (p: PaymentStatus) =>
   p === "paid" ? "Paid" : p === "partial" ? "Partial" : "Unpaid";
