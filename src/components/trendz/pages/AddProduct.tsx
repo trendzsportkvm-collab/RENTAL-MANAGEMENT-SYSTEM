@@ -303,14 +303,19 @@ export function AddProduct({
       <div className="glass flex flex-col overflow-hidden rounded-xl">
         <div className="flex overflow-x-auto border-b border-border bg-white/[0.02] scrollbar-hide">
           {(["basic", "attributes", "variations"] as Tab[]).map((t) => {
+            const isBasicInfoComplete = name.trim() !== "" && sku.trim() !== "" && category.trim() !== "";
+            const disabled = t !== "basic" && !isBasicInfoComplete;
             return (
               <button
                 key={t}
+                disabled={disabled}
                 onClick={() => setTab(t)}
                 className={`whitespace-nowrap px-6 py-4 text-sm font-medium transition-colors ${
                   tab === t
                     ? "border-b-2 border-gold text-gold"
-                    : "text-muted-foreground hover:text-foreground"
+                    : disabled
+                      ? "text-muted-foreground/30 cursor-not-allowed"
+                      : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {t === "basic" && "1. Basic Info"}
@@ -338,7 +343,14 @@ export function AddProduct({
                     list="categories-list"
                     className={inputClass}
                     value={category}
-                    onChange={(e) => setCategory(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setCategory(val);
+                      if (!sku || sku.match(/^[A-Z]{2,3}-001$/)) {
+                        const prefix = val.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, '');
+                        if (prefix.length >= 2) setSku(`${prefix}-001`);
+                      }
+                    }}
                     placeholder="e.g. Suit, Jeans"
                   />
                   <datalist id="categories-list">
@@ -365,6 +377,40 @@ export function AddProduct({
                     />
                   </Field>
                 </div>
+                
+                <Field label="Physical Units (Auto-Serializes)">
+                  {!showUnitPrompt ? (
+                    <button
+                      onClick={() => setShowUnitPrompt(true)}
+                      className="rounded border border-dashed border-border px-4 py-2 text-sm text-muted-foreground hover:border-gold hover:text-gold transition-colors"
+                    >
+                      + Bulk add unique pieces (e.g. 001, 002)
+                    </button>
+                  ) : (
+                    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-white/[0.02] p-4">
+                      <span className="text-sm font-medium text-foreground">How many pieces?</span>
+                      <input
+                        type="number"
+                        min={1}
+                        className={inputClass + " w-24"}
+                        value={unitQty}
+                        onChange={(e) => setUnitQty(e.target.value)}
+                        placeholder="e.g. 5"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') generateSerializedUnits();
+                        }}
+                      />
+                      <button className={goldButtonClass} onClick={generateSerializedUnits}>
+                        Add Units
+                      </button>
+                      <button className="text-sm text-muted-foreground hover:text-foreground" onClick={() => setShowUnitPrompt(false)}>
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </Field>
+
                 <Field label="Description">
                   <textarea
                     rows={4}
@@ -502,44 +548,7 @@ export function AddProduct({
                   >
                     <Plus className="h-4 w-4" /> Add Attribute
                   </button>
-                  <button
-                    onClick={() => setShowUnitPrompt(true)}
-                    className="flex items-center justify-center gap-2 rounded-md border border-border px-4 py-2 text-sm text-foreground hover:bg-white/[0.05]"
-                  >
-                    <Plus className="h-4 w-4" /> Auto-Generate Serial Units
-                  </button>
                 </div>
-                
-                {showUnitPrompt && (
-                  <div className="flex flex-wrap items-center justify-end gap-3 rounded-lg border border-border bg-white/[0.02] p-4 mt-2">
-                    <span className="text-sm text-muted-foreground w-full sm:w-auto">How many physical units?</span>
-                    <input 
-                      type="number"
-                      className="w-full sm:w-24 rounded-md border border-border bg-transparent px-3 py-1.5 text-sm outline-none focus:border-gold"
-                      value={unitQty}
-                      onChange={(e) => setUnitQty(e.target.value)}
-                      placeholder="e.g. 5"
-                      autoFocus
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') generateSerializedUnits();
-                      }}
-                    />
-                    <div className="flex w-full sm:w-auto justify-end gap-3">
-                      <button 
-                        onClick={() => setShowUnitPrompt(false)}
-                        className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-white/[0.05]"
-                      >
-                        Cancel
-                      </button>
-                      <button 
-                        onClick={generateSerializedUnits}
-                        className="rounded-md bg-gold px-3 py-1.5 text-sm font-medium text-black hover:bg-gold/90"
-                      >
-                        Generate
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
               <div className="flex justify-end pt-2">
                 <button onClick={generateVariations} className={goldButtonClass}>
