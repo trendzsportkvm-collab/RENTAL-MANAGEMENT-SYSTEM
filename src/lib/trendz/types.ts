@@ -10,6 +10,7 @@ export interface ProductVariation {
   stock: Record<string, number>;
   attributes: Record<string, string>;
   enabled: boolean;
+  conditionNotes?: string;
 }
 
 export interface ProductAttribute {
@@ -25,6 +26,9 @@ export interface Product {
   image: string;
   description?: string;
   category: string;
+  purchasePrice?: number;
+  replacementValue?: number;
+  bufferDays?: number;
   attributes?: ProductAttribute[];
   variations?: ProductVariation[];
 }

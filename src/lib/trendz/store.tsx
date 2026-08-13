@@ -182,6 +182,9 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
             image_url: draft.image,
             description: draft.description,
             category_id: categoryId,
+            purchase_price: draft.purchasePrice || 0,
+            replacement_value: draft.replacementValue || 0,
+            buffer_days: draft.bufferDays || 0,
           })
           .select("id")
           .single();
@@ -212,6 +215,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
                 sku: variation.sku,
                 daily_rate: variation.dailyRate,
                 is_enabled: variation.enabled,
+                condition_notes: variation.conditionNotes || null,
               })
               .select("id")
               .single();
@@ -251,6 +255,9 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
         if (patch.sku !== undefined) dbPatch.sku = patch.sku;
         if (patch.image !== undefined) dbPatch.image_url = patch.image;
         if (patch.description !== undefined) dbPatch.description = patch.description;
+        if (patch.purchasePrice !== undefined) dbPatch.purchase_price = patch.purchasePrice;
+        if (patch.replacementValue !== undefined) dbPatch.replacement_value = patch.replacementValue;
+        if (patch.bufferDays !== undefined) dbPatch.buffer_days = patch.bufferDays;
         if (patch.category !== undefined) {
           const { data: catData } = await supabase.from("categories").select("id").ilike("name", patch.category).maybeSingle();
           if (catData) {
@@ -283,7 +290,8 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
                     name: v.name,
                     sku: v.sku,
                     daily_rate: v.dailyRate,
-                    is_enabled: v.enabled
+                    is_enabled: v.enabled,
+                    condition_notes: v.conditionNotes || null
                   }, { onConflict: 'sku' })
                   .select("id")
                   .single();
@@ -299,7 +307,8 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
                     name: v.name,
                     sku: v.sku,
                     daily_rate: v.dailyRate,
-                    is_enabled: v.enabled
+                    is_enabled: v.enabled,
+                    condition_notes: v.conditionNotes || null
                   })
                   .eq("id", realVarId);
                   

@@ -59,6 +59,9 @@ export function AddProduct({
   const [sku, setSku] = useState("");
   const [category, setCategory] = useState("");
   const [dailyRate, setDailyRate] = useState(0);
+  const [purchasePrice, setPurchasePrice] = useState(0);
+  const [replacementValue, setReplacementValue] = useState(0);
+  const [bufferDays, setBufferDays] = useState(0);
   const [description, setDescription] = useState("");
   const [image, setImage] = useState("");
   const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
@@ -74,6 +77,9 @@ export function AddProduct({
       setSku(productToEdit.sku);
       setCategory(productToEdit.category || "");
       setDailyRate(productToEdit.dailyRate);
+      setPurchasePrice(productToEdit.purchasePrice || 0);
+      setReplacementValue(productToEdit.replacementValue || 0);
+      setBufferDays(productToEdit.bufferDays || 0);
       setDescription(productToEdit.description || "");
       setImage(productToEdit.image);
       setAttributes(productToEdit.attributes || []);
@@ -83,6 +89,9 @@ export function AddProduct({
       setSku("");
       setCategory(initialCategory || "");
       setDailyRate(0);
+      setPurchasePrice(0);
+      setReplacementValue(0);
+      setBufferDays(0);
       setDescription("");
       setImage("");
       
@@ -256,6 +265,9 @@ export function AddProduct({
       sku: sku.trim(),
       category: category.trim(),
       dailyRate,
+      purchasePrice,
+      replacementValue,
+      bufferDays,
       description,
       image,
       attributes,
@@ -386,6 +398,36 @@ export function AddProduct({
                     />
                   </Field>
                 </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Field label="Purchase Price (₹)" hint="Cost to acquire">
+                    <input
+                      type="number"
+                      className={monoInputClass}
+                      value={purchasePrice === 0 ? "" : purchasePrice}
+                      onChange={(e) => setPurchasePrice(Number(e.target.value))}
+                    />
+                  </Field>
+                  <Field label="Replacement Value (₹)" hint="Charge for lost/damaged">
+                    <input
+                      type="number"
+                      className={monoInputClass}
+                      value={replacementValue === 0 ? "" : replacementValue}
+                      onChange={(e) => setReplacementValue(Number(e.target.value))}
+                    />
+                  </Field>
+                </div>
+                
+                <Field label="Maintenance Buffer (Days)" hint="Days needed at dry cleaner before renting again">
+                  <input
+                    type="number"
+                    min={0}
+                    className={monoInputClass}
+                    value={bufferDays === 0 ? "" : bufferDays}
+                    onChange={(e) => setBufferDays(Number(e.target.value))}
+                    placeholder="e.g. 2"
+                  />
+                </Field>
                 
                 <Field label="Physical Units (Auto-Serializes)">
                   {(() => {
@@ -609,6 +651,30 @@ export function AddProduct({
                 </div>
               ) : (
                 <div className="space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-white/[0.02] border border-border rounded-xl">
+                    <span className="text-sm font-medium text-foreground">Bulk Assign All Units To:</span>
+                    <div className="flex flex-wrap gap-2">
+                      {branches.map((b) => (
+                        <button
+                          key={b}
+                          onClick={() => {
+                            setVariations(
+                              variations.map((v) => {
+                                const newStock = { ...v.stock };
+                                branches.forEach((br) => (newStock[br] = 0));
+                                newStock[b] = 1;
+                                return { ...v, stock: newStock };
+                              })
+                            );
+                            toast.success(`Assigned all units to ${b}`);
+                          }}
+                          className="text-sm rounded border border-border px-4 py-1.5 hover:bg-gold/10 hover:text-gold hover:border-gold/30 transition-colors"
+                        >
+                          {b}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   {variations.map((v, i) => (
                     <div
                       key={v.id}
@@ -655,6 +721,16 @@ export function AddProduct({
                             value={v.dailyRate === 0 ? "" : v.dailyRate}
                             onChange={(e) => updateVariation(i, { dailyRate: Number(e.target.value) })}
                             disabled={!v.enabled}
+                          />
+                        </Field>
+                        <Field label="Condition / Grade" hint="e.g. Brand New, Minor Stain">
+                          <input
+                            type="text"
+                            className={inputClass}
+                            value={v.conditionNotes || ""}
+                            onChange={(e) => updateVariation(i, { conditionNotes: e.target.value })}
+                            disabled={!v.enabled}
+                            placeholder="Optional..."
                           />
                         </Field>
                         {branches.map((b) => (
