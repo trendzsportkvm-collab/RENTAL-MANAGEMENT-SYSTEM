@@ -47,6 +47,7 @@ export function RentalFormModal({
   const [total, setTotal] = useState(0);
   const [advance, setAdvance] = useState(0);
   const [notes, setNotes] = useState("");
+  const [bufferDays, setBufferDays] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -58,6 +59,7 @@ export function RentalFormModal({
     setQty(1);
     setRentDate(todayISO());
     setDueDate("");
+    setBufferDays(0);
     setDailyRate(product.dailyRate);
     setDiscount(0);
     setTotal(product.dailyRate);
@@ -129,6 +131,7 @@ export function RentalFormModal({
         dailyRate,
         total,
         advance,
+        bufferDays,
         paymentStatus: advance <= 0 ? "unpaid" : advance >= total ? "paid" : "partial",
         notes: notes.trim(),
       });
@@ -228,6 +231,16 @@ export function RentalFormModal({
               className={monoInputClass}
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
+            />
+          </Field>
+          
+          <Field label="Maintenance Buffer (Days)" hint="Days at dry cleaner post-return">
+            <input
+              type="number"
+              min={0}
+              className={monoInputClass}
+              value={bufferDays === 0 ? "" : bufferDays}
+              onChange={(e) => setBufferDays(Number(e.target.value))}
             />
           </Field>
 

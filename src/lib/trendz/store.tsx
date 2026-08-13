@@ -184,7 +184,6 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
             category_id: categoryId,
             purchase_price: draft.purchasePrice || 0,
             replacement_value: draft.replacementValue || 0,
-            buffer_days: draft.bufferDays || 0,
           })
           .select("id")
           .single();
@@ -215,7 +214,6 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
                 sku: variation.sku,
                 daily_rate: variation.dailyRate,
                 is_enabled: variation.enabled,
-                condition_notes: variation.conditionNotes || null,
               })
               .select("id")
               .single();
@@ -257,7 +255,6 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
         if (patch.description !== undefined) dbPatch.description = patch.description;
         if (patch.purchasePrice !== undefined) dbPatch.purchase_price = patch.purchasePrice;
         if (patch.replacementValue !== undefined) dbPatch.replacement_value = patch.replacementValue;
-        if (patch.bufferDays !== undefined) dbPatch.buffer_days = patch.bufferDays;
         if (patch.category !== undefined) {
           const { data: catData } = await supabase.from("categories").select("id").ilike("name", patch.category).maybeSingle();
           if (catData) {
@@ -290,8 +287,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
                     name: v.name,
                     sku: v.sku,
                     daily_rate: v.dailyRate,
-                    is_enabled: v.enabled,
-                    condition_notes: v.conditionNotes || null
+                    is_enabled: v.enabled
                   }, { onConflict: 'sku' })
                   .select("id")
                   .single();
@@ -307,8 +303,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
                     name: v.name,
                     sku: v.sku,
                     daily_rate: v.dailyRate,
-                    is_enabled: v.enabled,
-                    condition_notes: v.conditionNotes || null
+                    is_enabled: v.enabled
                   })
                   .eq("id", realVarId);
                   
@@ -382,7 +377,8 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
         advance: draft.advance,
         payment_status: draft.paymentStatus,
         status: "out",
-        notes: draft.notes
+        notes: draft.notes,
+        buffer_days: draft.bufferDays || 0
       }).select('id, token').single();
 
       if (rentalErr || !insertedRental) throw new Error("Failed to insert rental: " + rentalErr?.message);

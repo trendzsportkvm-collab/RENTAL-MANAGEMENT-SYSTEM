@@ -61,7 +61,6 @@ export function AddProduct({
   const [dailyRate, setDailyRate] = useState(0);
   const [purchasePrice, setPurchasePrice] = useState(0);
   const [replacementValue, setReplacementValue] = useState(0);
-  const [bufferDays, setBufferDays] = useState(0);
   const [description, setDescription] = useState("");
   const [image, setImage] = useState("");
   const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
@@ -79,7 +78,6 @@ export function AddProduct({
       setDailyRate(productToEdit.dailyRate);
       setPurchasePrice(productToEdit.purchasePrice || 0);
       setReplacementValue(productToEdit.replacementValue || 0);
-      setBufferDays(productToEdit.bufferDays || 0);
       setDescription(productToEdit.description || "");
       setImage(productToEdit.image);
       setAttributes(productToEdit.attributes || []);
@@ -91,7 +89,6 @@ export function AddProduct({
       setDailyRate(0);
       setPurchasePrice(0);
       setReplacementValue(0);
-      setBufferDays(0);
       setDescription("");
       setImage("");
       
@@ -267,7 +264,6 @@ export function AddProduct({
       dailyRate,
       purchasePrice,
       replacementValue,
-      bufferDays,
       description,
       image,
       attributes,
@@ -417,17 +413,6 @@ export function AddProduct({
                     />
                   </Field>
                 </div>
-                
-                <Field label="Maintenance Buffer (Days)" hint="Days needed at dry cleaner before renting again">
-                  <input
-                    type="number"
-                    min={0}
-                    className={monoInputClass}
-                    value={bufferDays === 0 ? "" : bufferDays}
-                    onChange={(e) => setBufferDays(Number(e.target.value))}
-                    placeholder="e.g. 2"
-                  />
-                </Field>
                 
                 <Field label="Physical Units (Auto-Serializes)">
                   {(() => {
@@ -721,16 +706,6 @@ export function AddProduct({
                             value={v.dailyRate === 0 ? "" : v.dailyRate}
                             onChange={(e) => updateVariation(i, { dailyRate: Number(e.target.value) })}
                             disabled={!v.enabled}
-                          />
-                        </Field>
-                        <Field label="Condition / Grade" hint="e.g. Brand New, Minor Stain">
-                          <input
-                            type="text"
-                            className={inputClass}
-                            value={v.conditionNotes || ""}
-                            onChange={(e) => updateVariation(i, { conditionNotes: e.target.value })}
-                            disabled={!v.enabled}
-                            placeholder="Optional..."
                           />
                         </Field>
                         {branches.map((b) => (

@@ -10,7 +10,6 @@ export interface ProductVariation {
   stock: Record<string, number>;
   attributes: Record<string, string>;
   enabled: boolean;
-  conditionNotes?: string;
 }
 
 export interface ProductAttribute {
@@ -28,7 +27,6 @@ export interface Product {
   category: string;
   purchasePrice?: number;
   replacementValue?: number;
-  bufferDays?: number;
   attributes?: ProductAttribute[];
   variations?: ProductVariation[];
 }
@@ -56,6 +54,7 @@ export interface Rental {
   notes: string;
   returnedOn?: string;
   condition?: ReturnCondition;
+  bufferDays?: number;
 }
 
 export interface StockLocation {
