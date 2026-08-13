@@ -459,7 +459,9 @@ export function AddProduct({
           {tab === "attributes" && (
             <div className="space-y-6">
               <div className="space-y-4">
-                {attributes.map((attr, i) => (
+                {attributes.map((attr, i) => {
+                  if (attr.name === "Unit") return null;
+                  return (
                   <div key={i} className="flex flex-col gap-3 rounded-lg border border-border bg-white/[0.01] p-5 sm:flex-row sm:items-start">
                     <Field label="Attribute Name" className="sm:w-1/3">
                       <div className="flex flex-col gap-2">
@@ -542,7 +544,8 @@ export function AddProduct({
                       <Trash2 className="h-5 w-5" />
                     </button>
                   </div>
-                ))}
+                  );
+                })}
               </div>
               <div className="flex flex-col gap-4 pt-2">
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
