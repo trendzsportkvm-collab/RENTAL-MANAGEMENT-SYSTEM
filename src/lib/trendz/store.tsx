@@ -382,7 +382,6 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
       const days = Math.max(1, Math.ceil((new Date(draft.dueDate).getTime() - new Date(draft.rentDate).getTime()) / (1000 * 3600 * 24)));
       const { error: itemErr } = await supabase.from('rental_items').insert({
         rental_id: insertedRental.id,
-        product_id: draft.variationId ? null : (draft.productId || null),
         variation_id: draft.variationId || null,
         product_name: draft.productName,
         sku: draft.sku,

@@ -10,9 +10,9 @@ type Tab = "basic" | "attributes" | "variations";
 
 const STANDARD_ATTRIBUTES = [
   "Clothing Size",
-  "Shoe Size",
   "Color",
   "Fit / Style",
+  "Shoe Size",
   "Custom..."
 ];
 
@@ -208,8 +208,13 @@ export function AddProduct({
 
     const combinations = combine(0);
     const newVars: ProductVariation[] = combinations.map((c, i) => {
-      const nameParts = Object.entries(c).map(([k, v]) => `${k}: ${v}`);
-      const suffix = Object.values(c).join("-").toUpperCase().replace(/\s+/g, "");
+      const orderedKeys = Object.keys(c).sort((a, b) => {
+        if (a === 'Unit') return 1;
+        if (b === 'Unit') return -1;
+        return 0;
+      });
+      const nameParts = orderedKeys.map(k => `${k}: ${c[k]}`);
+      const suffix = orderedKeys.map(k => c[k]).join("-").toUpperCase().replace(/\s+/g, "");
       return {
         id: `v${Date.now()}-${i}`,
         name: nameParts.join(", "),
@@ -383,14 +388,37 @@ export function AddProduct({
                 </div>
                 
                 <Field label="Physical Units (Auto-Serializes)">
-                  {!showUnitPrompt ? (
-                    <button
-                      onClick={() => setShowUnitPrompt(true)}
-                      className="rounded border border-dashed border-border px-4 py-2 text-sm text-muted-foreground hover:border-gold hover:text-gold transition-colors"
-                    >
-                      + Bulk add unique pieces (e.g. 001, 002)
-                    </button>
-                  ) : (
+                  {(() => {
+                    const existingUnitAttr = attributes.find(a => a.name === "Unit");
+                    if (existingUnitAttr && !showUnitPrompt) {
+                      return (
+                        <div className="flex items-center justify-between gap-3 rounded-lg border border-gold/30 bg-gold/5 p-4">
+                          <span className="text-sm font-medium text-foreground">
+                            {existingUnitAttr.values.length} physical units added.
+                          </span>
+                          <button
+                            onClick={() => {
+                              setUnitQty(existingUnitAttr.values.length.toString());
+                              setShowUnitPrompt(true);
+                            }}
+                            className="text-sm font-medium text-gold hover:text-gold/80 transition-colors"
+                          >
+                            Edit Units
+                          </button>
+                        </div>
+                      );
+                    }
+                    if (!showUnitPrompt) {
+                      return (
+                        <button
+                          onClick={() => setShowUnitPrompt(true)}
+                          className="rounded border border-dashed border-border px-4 py-2 text-sm text-muted-foreground hover:border-gold hover:text-gold transition-colors"
+                        >
+                          + Bulk add unique pieces (e.g. 001, 002)
+                        </button>
+                      );
+                    }
+                    return (
                     <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-white/[0.02] p-4">
                       <span className="text-sm font-medium text-foreground">How many pieces?</span>
                       <input
@@ -412,7 +440,8 @@ export function AddProduct({
                         Cancel
                       </button>
                     </div>
-                  )}
+                    );
+                  })()}
                 </Field>
 
                 <Field label="Description">
@@ -477,7 +506,11 @@ export function AddProduct({
                           }}
                         >
                           <option value="" disabled>Select Attribute</option>
-                          {STANDARD_ATTRIBUTES.map(a => <option key={a} value={a}>{a}</option>)}
+                          {STANDARD_ATTRIBUTES.map(a => {
+                            const isUsed = attributes.some((existingAttr, existingIndex) => existingIndex !== i && existingAttr.name === a);
+                            if (isUsed && a !== "Custom...") return null;
+                            return <option key={a} value={a}>{a}</option>;
+                          })}
                         </select>
                         {!STANDARD_ATTRIBUTES.includes(attr.name) && attr.name && (
                           <input
@@ -519,18 +552,19 @@ export function AddProduct({
                         </div>
                       )}
                       {attr.values.length > 0 && (
-                        <div className="flex flex-wrap gap-2 pt-1">
+                        <div className="flex flex-wrap gap-2 pt-3 border-t border-white/5 mt-3">
+                          <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase flex items-center w-full mb-1">Selected Values:</span>
                           {attr.values.map((v) => (
                             <span
                               key={v}
-                              className="flex items-center gap-1.5 rounded-md bg-white/[0.08] px-2.5 py-1 text-xs font-medium"
+                              className="flex items-center gap-1.5 rounded-md bg-gold/15 border border-gold/30 px-3 py-1.5 text-sm font-medium text-gold"
                             >
                               {v}
                               <button
                                 onClick={() => removeAttributeValue(i, v)}
-                                className="text-muted-foreground hover:text-rust"
+                                className="text-gold/60 hover:text-rust transition-colors"
                               >
-                                <X className="h-3.5 w-3.5" />
+                                <X className="h-4 w-4" />
                               </button>
                             </span>
                           ))}
