@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Barcode, Search } from "lucide-react";
+import { QrCode, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useTrendz } from "@/lib/trendz/store";
 import { useAuth } from "@/lib/trendz/AuthContext";
@@ -74,7 +74,7 @@ export function ScanLookup({ onPutOut }: { onPutOut: (p: Product, branch?: strin
       <header className="text-center">
         <h1 className="font-display text-4xl font-semibold">Inventory Search</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Scan a barcode or type a SKU to check live stock across every branch.
+          Scan a QR code or type a SKU to check live stock across every branch.
         </p>
       </header>
 
@@ -111,10 +111,10 @@ export function ScanLookup({ onPutOut }: { onPutOut: (p: Product, branch?: strin
             />
             <button
               onClick={() => setShowScanner(true)}
-              aria-label="Scan barcode with camera"
+              aria-label="Scan QR code with camera"
               className="rounded-md border border-gold/35 bg-gold/10 p-2.5 text-gold transition-all duration-200 hover:bg-gold/20 hover:shadow-glow-gold"
             >
-              <Barcode className="h-4 w-4" />
+              <QrCode className="h-4 w-4" />
             </button>
           </div>
 

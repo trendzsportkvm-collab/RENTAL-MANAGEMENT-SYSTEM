@@ -49,7 +49,6 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
         supabase.from('products').select(`
           *,
           categories(name),
-          product_stock(quantity, branches(name)),
           product_variations(
             id, name, sku, daily_rate, is_enabled,
             product_stock(quantity, branches(name))
@@ -60,8 +59,8 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
           customers(full_name, phone),
           branches(name),
           rental_items(
-            product_id, variation_id, product_name, sku, image_url, qty, daily_rate,
-            product_variations(name)
+            variation_id, product_name, sku, image_url, qty, daily_rate,
+            product_variations(name, product_id)
           )
         `).order('created_at', { ascending: false })
       ]);
@@ -110,7 +109,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
           return {
             id: r.id,
             token: r.token,
-            productId: item.product_id || "",
+            productId: (item.product_variations as any)?.product_id || (item.product_variations as any)?.[0]?.product_id || "",
             productName: item.product_name || "Unknown Item",
             variationId: item.variation_id || undefined,
             variationName: (item.product_variations as any)?.name || (item.product_variations as any)?.[0]?.name || undefined,
@@ -160,9 +159,18 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
           const { data: catData } = await supabase
             .from("categories")
             .select("id")
-            .eq("name", draft.category)
+            .ilike("name", draft.category)
             .maybeSingle();
-          categoryId = catData?.id ?? null;
+          if (catData) {
+            categoryId = catData.id;
+          } else {
+            const { data: newCat } = await supabase
+              .from("categories")
+              .insert({ name: draft.category })
+              .select("id")
+              .single();
+            if (newCat) categoryId = newCat.id;
+          }
         }
 
         // 2. Insert the product
@@ -171,7 +179,6 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
           .insert({
             name: draft.name,
             sku: draft.sku,
-            daily_rate: draft.dailyRate,
             image_url: draft.image,
             description: draft.description,
             category_id: categoryId,
@@ -242,13 +249,18 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
         const dbPatch: any = {};
         if (patch.name !== undefined) dbPatch.name = patch.name;
         if (patch.sku !== undefined) dbPatch.sku = patch.sku;
-        if (patch.dailyRate !== undefined) dbPatch.daily_rate = patch.dailyRate;
         if (patch.image !== undefined) dbPatch.image_url = patch.image;
         if (patch.description !== undefined) dbPatch.description = patch.description;
-        
         if (patch.category !== undefined) {
-          const { data: catData } = await supabase.from("categories").select("id").eq("name", patch.category).maybeSingle();
-          if (catData) dbPatch.category_id = catData.id;
+          const { data: catData } = await supabase.from("categories").select("id").ilike("name", patch.category).maybeSingle();
+          if (catData) {
+            dbPatch.category_id = catData.id;
+          } else if (patch.category) {
+            const { data: newCat } = await supabase.from("categories").insert({ name: patch.category }).select("id").single();
+            if (newCat) dbPatch.category_id = newCat.id;
+          } else {
+            dbPatch.category_id = null;
+          }
         }
 
         if (Object.keys(dbPatch).length > 0) {

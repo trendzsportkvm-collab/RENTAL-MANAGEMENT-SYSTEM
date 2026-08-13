@@ -57,7 +57,7 @@ export function AddProduct({
 
   const [name, setName] = useState("");
   const [sku, setSku] = useState("");
-  const [category, setCategory] = useState("Uncategorized");
+  const [category, setCategory] = useState("");
   const [dailyRate, setDailyRate] = useState(0);
   const [description, setDescription] = useState("");
   const [image, setImage] = useState("");
@@ -72,7 +72,7 @@ export function AddProduct({
     if (productToEdit) {
       setName(productToEdit.name);
       setSku(productToEdit.sku);
-      setCategory(productToEdit.category || "Uncategorized");
+      setCategory(productToEdit.category || "");
       setDailyRate(productToEdit.dailyRate);
       setDescription(productToEdit.description || "");
       setImage(productToEdit.image);
@@ -81,7 +81,7 @@ export function AddProduct({
     } else {
       setName("");
       setSku("");
-      setCategory(initialCategory || "Uncategorized");
+      setCategory(initialCategory || "");
       setDailyRate(0);
       setDescription("");
       setImage("");
