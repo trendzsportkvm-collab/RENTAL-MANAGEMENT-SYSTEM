@@ -348,7 +348,11 @@ export function AddProduct({
                       setCategory(val);
                       if (!sku || sku.match(/^[A-Z]{2,3}-001$/)) {
                         const prefix = val.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, '');
-                        if (prefix.length >= 2) setSku(`${prefix}-001`);
+                        if (prefix.length >= 2) {
+                          setSku(`${prefix}-001`);
+                        } else if (val.trim() === "") {
+                          setSku("");
+                        }
                       }
                     }}
                     placeholder="e.g. Suit, Jeans"
