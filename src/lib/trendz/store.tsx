@@ -347,7 +347,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
                 .filter(([, qty]) => qty > 0)
                 .map(([branchName, qty]) => {
                   const branch = branches.find((b) => b.name === branchName);
-                  return branch ? { product_id: product.id, variation_id: realVarId, branch_id: branch.id, quantity: qty } : null;
+                  return branch ? { product_id: id, variation_id: realVarId, branch_id: branch.id, quantity: qty } : null;
                 }).filter(Boolean);
                 
               if (varStockRows.length > 0) {
