@@ -6,16 +6,6 @@ import { inr } from "@/lib/trendz/utils";
 import { BranchPill, StatusBadge, inputClass } from "../primitives";
 import { GridSkeleton, TableSkeleton } from "../Skeleton";
 
-interface FlattenedRental {
-  id: string;
-  productId: string;
-  name: string;
-  sku: string;
-  dailyRate: number;
-  image: string;
-  stock: Record<string, number>;
-}
-
 export function AllRentals({ onOpen }: { onOpen?: (p: Product) => void }) {
   const { products, branches, isLoading } = useTrendz();
   const [query, setQuery] = useState("");
@@ -23,193 +13,201 @@ export function AllRentals({ onOpen }: { onOpen?: (p: Product) => void }) {
   const [stockFilter, setStockFilter] = useState("all");
   const [view, setView] = useState<"grid" | "list">("grid");
 
-  const flattenedRentals = useMemo(() => {
-    return products.flatMap((p) => {
-      return (p.variations || []).filter(v => v.enabled).map(v => ({
-        id: v.id,
-        productId: p.id,
-        name: `${p.name} - ${v.name}`,
-        sku: v.sku,
-        dailyRate: v.dailyRate,
-        image: p.image,
-        stock: v.stock,
-      }));
-    });
-  }, [products]);
-
-  const totalOf = (r: FlattenedRental) => {
-    return branch === "all" ? Object.values(r.stock).reduce((a, b) => a + b, 0) : (r.stock[branch] ?? 0);
+  const totalOf = (p: Product) => {
+    let sum = 0;
+    for (const v of p.variations || []) {
+      if (!v.enabled) continue;
+      if (branch === "all") {
+        sum += Object.values(v.stock).reduce((a, b) => a + b, 0);
+      } else {
+        sum += v.stock[branch] ?? 0;
+      }
+    }
+    return sum;
   };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return flattenedRentals.filter((r) => {
-      if (q && !r.name.toLowerCase().includes(q) && !r.sku.toLowerCase().includes(q)) return false;
-      const total = totalOf(r);
+    return products.filter((p) => {
+      if (q && !p.name.toLowerCase().includes(q) && !p.sku.toLowerCase().includes(q)) return false;
+      const total = totalOf(p);
       
-      const hasBranch = branch === "all" || branch in r.stock;
-      
-      if (!hasBranch) return false;
+      const hasBranch = branch === "all" || (p.variations || []).some(v => v.enabled && branch in v.stock);
+
+      if (branch !== "all" && !hasBranch) return false;
       if (stockFilter === "in" && total <= 0) return false;
       if (stockFilter === "out" && total > 0) return false;
       return true;
     });
-  }, [flattenedRentals, query, branch, stockFilter]);
+  }, [products, query, branch, stockFilter]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="h-10 w-48 rounded-md bg-white/[0.02] animate-pulse" />
+        <div className="flex gap-4">
+          <div className="h-10 flex-1 rounded-md bg-white/[0.02] animate-pulse" />
+          <div className="h-10 w-32 rounded-md bg-white/[0.02] animate-pulse" />
+          <div className="h-10 w-32 rounded-md bg-white/[0.02] animate-pulse" />
+        </div>
+        {view === "grid" ? <GridSkeleton count={8} /> : <TableSkeleton rows={5} />}
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-3xl font-semibold">All Rentals</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {filtered.length} individual item{filtered.length === 1 ? "" : "s"} in inventory
-          </p>
-        </div>
-      </header>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-2">
+        <h1 className="font-display text-3xl font-semibold">All Rentals</h1>
+        <p className="text-sm text-muted-foreground">
+          {filtered.length} product{filtered.length !== 1 ? "s" : ""} found
+        </p>
+      </div>
 
-      <div className="glass mt-6 flex flex-wrap items-center gap-3 p-3">
-        <input
-          className={inputClass + " max-w-64 flex-1"}
-          placeholder="Search name or SKU…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <select className={inputClass + " w-40"} value={branch} onChange={(e) => setBranch(e.target.value)}>
-          <option value="all">All branches</option>
-          {branches.map((b) => (
-            <option key={b} value={b}>
-              {b}
-            </option>
-          ))}
-        </select>
-        <select
-          className={inputClass + " w-40"}
-          value={stockFilter}
-          onChange={(e) => setStockFilter(e.target.value)}
-        >
-          <option value="all">All stock</option>
-          <option value="in">In stock</option>
-          <option value="out">Out of stock</option>
-        </select>
-        <div className="ml-auto flex gap-1 rounded-md border border-border p-1">
-          <button
-            onClick={() => setView("grid")}
-            className={`rounded-md p-1.5 transition-colors ${view === "grid" ? "bg-white/10 text-foreground" : "text-muted-foreground hover:bg-white/5"}`}
-          >
-            <LayoutGrid className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => setView("list")}
-            className={`rounded-md p-1.5 transition-colors ${view === "list" ? "bg-white/10 text-foreground" : "text-muted-foreground hover:bg-white/5"}`}
-          >
-            <List className="h-4 w-4" />
-          </button>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-lg border border-border bg-white/[0.02] p-3">
+        <div className="w-full sm:max-w-xs">
+          <input
+            type="text"
+            placeholder="Search products by name or SKU..."
+            className={inputClass + " w-full"}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <select className={inputClass + " w-36"} value={branch} onChange={(e) => setBranch(e.target.value)}>
+            <option value="all">All Branches</option>
+            {branches.map((b) => <option key={b} value={b}>{b}</option>)}
+          </select>
+          <select className={inputClass + " w-40"} value={stockFilter} onChange={(e) => setStockFilter(e.target.value)}>
+            <option value="all">All Stock Status</option>
+            <option value="in">In Stock</option>
+            <option value="out">Out of Stock</option>
+          </select>
+          <div className="flex items-center rounded-md border border-border bg-white/[0.02] p-1 ml-auto sm:ml-0">
+            <button
+              onClick={() => setView("grid")}
+              className={`rounded p-1.5 transition-colors ${view === "grid" ? "bg-white/[0.08] text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setView("list")}
+              className={`rounded p-1.5 transition-colors ${view === "list" ? "bg-white/[0.08] text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              <List className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
 
-      {isLoading ? (
-        view === "grid" ? (
-          <div className="mt-6">
-            <GridSkeleton count={10} />
-          </div>
-        ) : (
-          <div className="glass mt-6 p-4">
-            <TableSkeleton rows={8} columns={5} />
-          </div>
-        )
+      {filtered.length === 0 ? (
+        <div className="flex min-h-[300px] items-center justify-center rounded-lg border border-border border-dashed">
+          <p className="text-sm text-muted-foreground">No products match your filters.</p>
+        </div>
+      ) : view === "grid" ? (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {filtered.map((p) => {
+            const total = totalOf(p);
+            const activeVariations = (p.variations || []).filter(v => v.enabled);
+            return (
+              <div
+                key={p.id}
+                onClick={() => onOpen?.(p)}
+                className="group flex cursor-pointer flex-col overflow-hidden rounded-lg border border-border bg-white/[0.02] transition-all duration-300 hover:border-gold/30 hover:bg-white/[0.04] hover:shadow-glow-gold"
+              >
+                <div className="relative aspect-square overflow-hidden bg-black/20">
+                  <img
+                    src={p.image}
+                    alt={p.name}
+                    loading="lazy"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute right-3 top-3">
+                    <StatusBadge tone={total > 0 ? "emerald" : "rust"}>
+                      {total > 0 ? "In Stock" : "Out"}
+                    </StatusBadge>
+                  </div>
+                </div>
+                <div className="flex flex-1 flex-col p-4">
+                  <h3 className="font-display text-lg font-semibold line-clamp-1">{p.name}</h3>
+                  <div className="mt-1 flex items-center justify-between">
+                    <p className="font-mono text-xs text-muted-foreground">{p.sku || "—"}</p>
+                    <span className="text-[10px] text-muted-foreground">{activeVariations.length} variants</span>
+                  </div>
+                  
+                  <div className="mt-auto pt-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <p className="font-mono text-sm text-gold">{inr(p.dailyRate)}/day</p>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {branch === "all" ? (
+                        branches.map((b) => {
+                          const bQty = activeVariations.reduce((sum, v) => sum + (v.stock[b] ?? 0), 0);
+                          return <BranchPill key={b} branch={b} qty={bQty} />;
+                        })
+                      ) : (
+                        <BranchPill branch={branch} qty={total} />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       ) : (
-        <>
-          {view === "grid" ? (
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
-              {filtered.map((r) => (
-                <button
-                  key={r.id}
-                  onClick={() => {
-                    const product = products.find(p => p.id === r.productId);
-                    if (product) onOpen?.(product);
-                  }}
-                  className="glass group overflow-hidden p-0 text-left transition-all duration-300 hover:border-gold/30 hover:shadow-glow-soft cursor-pointer w-full flex flex-col h-full"
-                >
-                  <img
-                    src={r.image}
-                    alt={r.name}
-                    width={1024}
-                    height={768}
-                    loading="lazy"
-                    className="aspect-4/3 w-full shrink-0 object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                  />
-                  <div className="flex flex-col flex-1 w-full p-4">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-display text-lg leading-tight font-medium">{r.name}</h3>
-                      <StatusBadge tone={totalOf(r) > 0 ? "emerald" : "rust"} className="shrink-0 mt-0.5">
-                        {totalOf(r) > 0 ? "In Stock" : "Out"}
-                      </StatusBadge>
-                    </div>
-                    <p className="mt-1 font-mono text-xs text-muted-foreground">{r.sku}</p>
-                    
-                    <div className="mt-auto pt-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <p className="font-mono text-sm text-gold">{inr(r.dailyRate)}/day</p>
+        <div className="overflow-x-auto rounded-lg border border-border bg-white/[0.02]">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-border bg-white/[0.02]">
+                <th className="w-16 px-4 py-3"></th>
+                <th className="px-4 py-3 font-medium">Product</th>
+                <th className="px-4 py-3 font-medium">Rate</th>
+                <th className="px-4 py-3 font-medium">Stock</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((p) => {
+                const total = totalOf(p);
+                const activeVariations = (p.variations || []).filter(v => v.enabled);
+                return (
+                  <tr
+                    key={p.id}
+                    onClick={() => onOpen?.(p)}
+                    className="group cursor-pointer transition-colors hover:bg-white/[0.04]"
+                  >
+                    <td className="px-4 py-3">
+                      <img src={p.image} alt="" className="h-10 w-10 rounded object-cover" loading="lazy" />
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="font-medium text-foreground group-hover:text-gold transition-colors">{p.name}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <p className="font-mono text-xs text-muted-foreground">{p.sku}</p>
+                        <span className="text-[10px] text-muted-foreground">{activeVariations.length} variants</span>
                       </div>
+                    </td>
+                    <td className="px-4 py-3 align-middle">
+                      <p className="font-mono text-sm text-gold">{inr(p.dailyRate)}/day</p>
+                    </td>
+                    <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1.5">
-                        {branches.map((b) => {
-                          const q = r.stock[b] || 0;
-                          if (q > 0) return <BranchPill key={b} branch={b} qty={q} />;
-                          return null;
-                        })}
+                        {branch === "all" ? (
+                          branches.map((b) => {
+                            const bQty = activeVariations.reduce((sum, v) => sum + (v.stock[b] ?? 0), 0);
+                            return <BranchPill key={b} branch={b} qty={bQty} />;
+                          })
+                        ) : (
+                          <BranchPill branch={branch} qty={total} />
+                        )}
                       </div>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="glass mt-6 divide-y divide-border overflow-hidden">
-              {filtered.map((r) => (
-                <button
-                  key={r.id}
-                  onClick={() => {
-                    const product = products.find(p => p.id === r.productId);
-                    if (product) onOpen?.(product);
-                  }}
-                  className="flex w-full flex-wrap items-center gap-4 px-4 py-3 text-left transition-colors duration-200 hover:bg-white/[0.05] cursor-pointer"
-                >
-                  <img
-                    src={r.image}
-                    alt={r.name}
-                    width={64}
-                    height={48}
-                    loading="lazy"
-                    className="h-12 w-16 rounded-md border border-border object-cover"
-                  />
-                  <div className="min-w-[10rem] flex-1">
-                    <h3 className="font-display text-base font-medium">
-                      {r.name}{" "}
-                    </h3>
-                    <p className="font-mono text-xs text-muted-foreground">{r.sku}</p>
-                  </div>
-                  <p className="font-mono text-sm text-gold">{inr(r.dailyRate)}/day</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {branches.map((b) => {
-                      const q = r.stock[b] || 0;
-                      if (q > 0) return <BranchPill key={b} branch={b} qty={q} />;
-                      return null;
-                    })}
-                  </div>
-                  <StatusBadge tone={totalOf(r) > 0 ? "emerald" : "rust"}>
-                    {totalOf(r) > 0 ? "In Stock" : "Out of Stock"}
-                  </StatusBadge>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {filtered.length === 0 ? (
-            <p className="px-4 py-10 text-center text-sm text-muted-foreground">
-              No individual items found.
-            </p>
-          ) : null}
-        </>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

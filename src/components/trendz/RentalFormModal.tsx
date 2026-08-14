@@ -21,7 +21,7 @@ export function RentalFormModal({
   onClose: () => void;
   onCreated: (rental: Rental) => void;
 }) {
-  const { createRental } = useTrendz();
+  const { createRental, branches: allBranches } = useTrendz();
   const [variationId, setVariationId] = useState("");
 
   const selectedVariation = useMemo(
@@ -29,17 +29,10 @@ export function RentalFormModal({
     [product, variationId]
   );
 
-  const stocked = useMemo(() => {
-    if (!product || !selectedVariation) return [];
-    return Object.entries(selectedVariation.stock)
-      .filter(([, q]) => q > 0)
-      .map(([b]) => b);
-  }, [product, selectedVariation]);
-
   const [branch, setBranch] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
-  const [qty, setQty] = useState(1);
+  const [qty, setQty] = useState<number | "">(1);
   const [rentDate, setRentDate] = useState(todayISO());
   const [dueDate, setDueDate] = useState("");
   const [dailyRate, setDailyRate] = useState(0);
@@ -74,17 +67,15 @@ export function RentalFormModal({
       setBranch("");
       return;
     }
-    const initialBranch = defaultBranch && stocked.includes(defaultBranch) ? defaultBranch : stocked[0] ?? "";
+    const initialBranch = defaultBranch && allBranches.includes(defaultBranch) ? defaultBranch : allBranches[0] ?? "";
     setBranch(initialBranch);
     
-    if (selectedVariation) {
-      setDailyRate(selectedVariation.dailyRate);
-    }
-  }, [open, product, defaultBranch, stocked, variationId, selectedVariation]);
+    
+  }, [open, product, defaultBranch, allBranches, variationId, selectedVariation]);
 
   const available = product && branch && selectedVariation ? (selectedVariation.stock[branch] ?? 0) : 0;
   const days = rentDate && dueDate && dueDate > rentDate ? daysBetween(rentDate, dueDate) : 1;
-  const computed = Math.max(0, days * dailyRate * (qty || 1) - discount);
+  const computed = Math.max(0, days * dailyRate * (Number(qty) || 1) - discount);
 
   useEffect(() => {
     setTotal(computed);
@@ -104,8 +95,8 @@ export function RentalFormModal({
     } else if (!/^(\+91)?\d{10}$/.test(customerPhone.replace(/[\s-]/g, ""))) {
       next.customerPhone = "Use a 10-digit Indian number";
     }
-    if (!qty || qty < 1) next.qty = "Minimum quantity is 1";
-    if (qty > available) next.qty = `Only ${available} available at ${branch}`;
+    if (!qty || Number(qty) < 1) next.qty = "Minimum quantity is 1";
+    if (Number(qty) > available) next.qty = `Only ${available} available at ${branch}`;
     if (!rentDate) next.rentDate = "Rent date is required";
     if (!dueDate) next.dueDate = "Due date is required";
     else if (dueDate <= rentDate) next.dueDate = "Due date must be after the rent date";
@@ -125,7 +116,7 @@ export function RentalFormModal({
         branch,
         customerName: customerName.trim(),
         customerPhone: customerPhone.replace(/[\s-]/g, ""),
-        qty,
+        qty: Number(qty) || 1,
         rentDate,
         dueDate,
         dailyRate,
@@ -153,6 +144,11 @@ export function RentalFormModal({
           </DialogTitle>
         </DialogHeader>
 
+        {Object.keys(errors).length > 0 && (
+          <div className="mb-4 rounded-md border border-rust/50 bg-rust/10 p-3 text-sm text-rust">
+            Please correct the highlighted errors before submitting.
+          </div>
+        )}
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Variation" error={errors.variationId} className="sm:col-span-2">
             <select className={inputClass} value={variationId} onChange={(e) => setVariationId(e.target.value)}>
@@ -174,8 +170,8 @@ export function RentalFormModal({
 
           <Field label="Branch" error={errors.branch}>
             <select className={inputClass} value={branch} onChange={(e) => setBranch(e.target.value)}>
-              {stocked.length === 0 ? <option value="">No stock available</option> : null}
-              {stocked.map((b) => {
+              {allBranches.length === 0 ? <option value="">No branches available</option> : null}
+              {allBranches.map((b) => {
                 const bStock = selectedVariation?.stock[b] ?? 0;
                 return (
                   <option key={b} value={b}>
@@ -192,7 +188,7 @@ export function RentalFormModal({
               max={available}
               className={monoInputClass}
               value={qty}
-              onChange={(e) => setQty(Number(e.target.value))}
+              onChange={(e) => setQty(e.target.value === "" ? "" : Number(e.target.value))}
             />
           </Field>
 
@@ -219,6 +215,7 @@ export function RentalFormModal({
           <Field label="Rent Date" error={errors.rentDate}>
             <input
               type="date"
+              min={todayISO()}
               className={monoInputClass}
               value={rentDate}
               onChange={(e) => setRentDate(e.target.value)}
@@ -244,15 +241,7 @@ export function RentalFormModal({
             />
           </Field>
 
-          <Field label="Daily Rate (₹)">
-            <input
-              type="number"
-              min={0}
-              className={monoInputClass}
-              value={dailyRate === 0 ? "" : dailyRate}
-              onChange={(e) => setDailyRate(Number(e.target.value))}
-            />
-          </Field>
+          <Field label="Daily Rate (₹)"><input type="number" className={monoInputClass + " opacity-70 bg-white/[0.02] cursor-not-allowed"} value={dailyRate === 0 ? "" : dailyRate} readOnly tabIndex={-1} /></Field>
           <Field label="Discount (₹)">
             <input
               type="number"
@@ -264,7 +253,7 @@ export function RentalFormModal({
           </Field>
           <Field
             label="Total Amount (₹)"
-            hint={discount > 0 ? `${days} day${days > 1 ? "s" : ""} × ${inr(dailyRate)} × ${qty || 1} - ${inr(discount)} discount` : `${days} day${days > 1 ? "s" : ""} × ${inr(dailyRate)} × ${qty || 1}`}
+            hint={discount > 0 ? `${days} day${days > 1 ? "s" : ""} × ${inr(dailyRate)} × ${Number(qty) || 1} - ${inr(discount)} discount` : `${days} day${days > 1 ? "s" : ""} × ${inr(dailyRate)} × ${Number(qty) || 1}`}
           >
             <input
               className={monoInputClass + " opacity-70 bg-white/[0.02] cursor-not-allowed"}
@@ -304,7 +293,7 @@ export function RentalFormModal({
         <button
           className={goldButtonClass + " mt-2 w-full"}
           onClick={submit}
-          disabled={isSubmitting || qty > available}
+          disabled={isSubmitting}
         >
           {isSubmitting ? "Confirming..." : "Confirm Rental"}
         </button>
@@ -312,3 +301,5 @@ export function RentalFormModal({
     </Dialog>
   );
 }
+
+

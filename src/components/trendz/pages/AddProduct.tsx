@@ -5,6 +5,7 @@ import { useTrendz } from "@/lib/trendz/store";
 import type { Product, ProductAttribute, ProductVariation } from "@/lib/trendz/types";
 import { createClient } from "@/lib/supabase/client";
 import { Field, goldButtonClass, inputClass, monoInputClass } from "../primitives";
+import imageCompression from "browser-image-compression";
 
 type Tab = "basic" | "attributes" | "variations";
 
@@ -66,8 +67,6 @@ export function AddProduct({
   const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
   const [variations, setVariations] = useState<ProductVariation[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [showUnitPrompt, setShowUnitPrompt] = useState(false);
-  const [unitQty, setUnitQty] = useState("");
   const supabase = createClient();
 
   useEffect(() => {
@@ -97,21 +96,52 @@ export function AddProduct({
     }
     setTab("basic");
     setError("");
-    setShowUnitPrompt(false);
-    setUnitQty("");
   }, [productToEdit, initialCategory, branches]);
+
+  useEffect(() => {
+    if (productToEdit) return;
+    if (!category.trim()) return;
+    
+    const categoryLower = category.trim().toLowerCase();
+    const categoryProducts = products.filter(p => (p.category || "").toLowerCase() === categoryLower);
+    
+    let prefix = categoryLower.replace(/[^a-z]/gi, '').substring(0, 3).toUpperCase();
+    if (prefix.length < 3) prefix = prefix.padEnd(3, 'X');
+    if (!prefix) prefix = "PRD";
+    
+    let maxNum = 0;
+    categoryProducts.forEach(p => {
+      if (p.sku.startsWith(`${prefix}-`)) {
+        const numPart = p.sku.substring(prefix.length + 1);
+        const num = parseInt(numPart, 10);
+        if (!isNaN(num) && num > maxNum) {
+          maxNum = num;
+        }
+      }
+    });
+    
+    const nextNum = String(maxNum + 1).padStart(3, '0');
+    setSku(`${prefix}-${nextNum}`);
+  }, [category, products, productToEdit]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setIsUploading(true);
       try {
+        const options = {
+          maxSizeMB: 0.1, // Max 100KB
+          maxWidthOrHeight: 1024,
+          useWebWorker: true,
+        };
+        const compressedFile = await imageCompression(file, options);
+        
         const fileExt = file.name.split('.').pop();
         const fileName = `${Math.random()}.${fileExt}`;
         
         const { error } = await supabase.storage
           .from('product_images')
-          .upload(fileName, file);
+          .upload(fileName, compressedFile);
 
         if (error) throw error;
 
@@ -170,29 +200,6 @@ export function AddProduct({
     setAttributes(next);
   };
 
-  const generateSerializedUnits = () => {
-    const qty = parseInt(unitQty, 10);
-    if (isNaN(qty) || qty <= 0 || qty > 500) {
-      toast.error("Please enter a valid number between 1 and 500");
-      return;
-    }
-    
-    const unitValues = Array.from({ length: qty }, (_, i) => String(i + 1).padStart(3, '0'));
-    
-    const existingIndex = attributes.findIndex(a => a.name.toLowerCase() === "unit");
-    if (existingIndex >= 0) {
-      const next = [...attributes];
-      next[existingIndex] = { ...next[existingIndex], values: unitValues };
-      setAttributes(next);
-    } else {
-      setAttributes([...attributes, { name: "Unit", values: unitValues }]);
-    }
-    
-    toast.success(`Added Unit attribute with ${qty} units`);
-    setShowUnitPrompt(false);
-    setUnitQty("");
-  };
-
   const generateVariations = () => {
     if (attributes.length === 0 || attributes.some((a) => !a.name.trim() || a.values.length === 0)) {
       toast.error("Please define valid attributes with values first.");
@@ -214,11 +221,7 @@ export function AddProduct({
 
     const combinations = combine(0);
     const newVars: ProductVariation[] = combinations.map((c, i) => {
-      const orderedKeys = Object.keys(c).sort((a, b) => {
-        if (a === 'Unit') return 1;
-        if (b === 'Unit') return -1;
-        return 0;
-      });
+      const orderedKeys = Object.keys(c).sort();
       const nameParts = orderedKeys.map(k => `${k}: ${c[k]}`);
       const suffix = orderedKeys.map(k => c[k]).join("-").toUpperCase().replace(/\s+/g, "");
       return {
@@ -414,62 +417,7 @@ export function AddProduct({
                   </Field>
                 </div>
                 
-                <Field label="Physical Units (Auto-Serializes)">
-                  {(() => {
-                    const existingUnitAttr = attributes.find(a => a.name === "Unit");
-                    if (existingUnitAttr && !showUnitPrompt) {
-                      return (
-                        <div className="flex items-center justify-between gap-3 rounded-lg border border-gold/30 bg-gold/5 p-4">
-                          <span className="text-sm font-medium text-foreground">
-                            {existingUnitAttr.values.length} physical units added.
-                          </span>
-                          <button
-                            onClick={() => {
-                              setUnitQty(existingUnitAttr.values.length.toString());
-                              setShowUnitPrompt(true);
-                            }}
-                            className="text-sm font-medium text-gold hover:text-gold/80 transition-colors"
-                          >
-                            Edit Units
-                          </button>
-                        </div>
-                      );
-                    }
-                    if (!showUnitPrompt) {
-                      return (
-                        <button
-                          onClick={() => setShowUnitPrompt(true)}
-                          className="rounded border border-dashed border-border px-4 py-2 text-sm text-muted-foreground hover:border-gold hover:text-gold transition-colors"
-                        >
-                          + Bulk add unique pieces (e.g. 001, 002)
-                        </button>
-                      );
-                    }
-                    return (
-                    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-white/[0.02] p-4">
-                      <span className="text-sm font-medium text-foreground">How many pieces?</span>
-                      <input
-                        type="number"
-                        min={1}
-                        className={inputClass + " w-24"}
-                        value={unitQty}
-                        onChange={(e) => setUnitQty(e.target.value)}
-                        placeholder="e.g. 5"
-                        autoFocus
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') generateSerializedUnits();
-                        }}
-                      />
-                      <button className={goldButtonClass} onClick={generateSerializedUnits}>
-                        Add Units
-                      </button>
-                      <button className="text-sm text-muted-foreground hover:text-foreground" onClick={() => setShowUnitPrompt(false)}>
-                        Cancel
-                      </button>
-                    </div>
-                    );
-                  })()}
-                </Field>
+
 
                 <Field label="Description">
                   <textarea
@@ -516,7 +464,6 @@ export function AddProduct({
             <div className="space-y-6">
               <div className="space-y-4">
                 {attributes.map((attr, i) => {
-                  if (attr.name === "Unit") return null;
                   return (
                   <div key={i} className="flex flex-col gap-3 rounded-lg border border-border bg-white/[0.01] p-5 sm:flex-row sm:items-start">
                     <Field label="Attribute Name" className="sm:w-1/3">
@@ -636,31 +583,9 @@ export function AddProduct({
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 bg-white/[0.02] border border-border rounded-xl">
-                    <span className="text-sm font-medium text-foreground">Bulk Assign All Units To:</span>
-                    <div className="flex flex-wrap gap-2">
-                      {branches.map((b) => (
-                        <button
-                          key={b}
-                          onClick={() => {
-                            setVariations(
-                              variations.map((v) => {
-                                const newStock = { ...v.stock };
-                                branches.forEach((br) => (newStock[br] = 0));
-                                newStock[b] = 1;
-                                return { ...v, stock: newStock };
-                              })
-                            );
-                            toast.success(`Assigned all units to ${b}`);
-                          }}
-                          className="text-sm rounded border border-border px-4 py-1.5 hover:bg-gold/10 hover:text-gold hover:border-gold/30 transition-colors"
-                        >
-                          {b}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  {variations.map((v, i) => (
+                  {variations.map((v, i) => {
+                    const totalUnits = Object.values(v.stock).reduce((a, b) => a + (Number(b) || 0), 0);
+                    return (
                     <div
                       key={v.id}
                       className={`flex flex-col gap-4 rounded-xl border border-border p-5 transition-colors ${
@@ -669,8 +594,13 @@ export function AddProduct({
                     >
                       <div className="flex items-center justify-between border-b border-border/50 pb-4">
                         <div>
-                          <h4 className="font-display text-lg font-medium text-foreground">{v.name}</h4>
-                          <p className="font-mono text-xs text-muted-foreground mt-1">{v.sku}</p>
+                          <div className="flex items-center gap-3">
+                            <h4 className="font-display text-lg font-medium text-foreground">{v.name}</h4>
+                            <span className="rounded bg-white/[0.05] px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                              {totalUnits} Total Unit{totalUnits !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+                          <p className="font-mono text-xs text-muted-foreground mt-1">{v.sku} · ₹{v.dailyRate}/day</p>
                         </div>
                         <div className="flex items-center gap-6">
                           <label className="flex items-center gap-2.5 text-sm cursor-pointer">
@@ -699,15 +629,7 @@ export function AddProduct({
                             disabled={!v.enabled}
                           />
                         </Field>
-                        <Field label="Daily Rate (₹)">
-                          <input
-                            type="number"
-                            className={monoInputClass}
-                            value={v.dailyRate === 0 ? "" : v.dailyRate}
-                            onChange={(e) => updateVariation(i, { dailyRate: Number(e.target.value) })}
-                            disabled={!v.enabled}
-                          />
-                        </Field>
+                        
                         {branches.map((b) => (
                           <Field key={b} label={`${b} Stock`}>
                             <input
@@ -724,7 +646,8 @@ export function AddProduct({
                         ))}
                       </div>
                     </div>
-                  ))}
+                  );
+                })}
                 </div>
               )}
             </div>
@@ -734,3 +657,4 @@ export function AddProduct({
     </div>
   );
 }
+

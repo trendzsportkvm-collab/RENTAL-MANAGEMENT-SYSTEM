@@ -132,9 +132,9 @@ export function AllProducts({
                     <img src={p.image} alt="" className="h-10 w-10 rounded border border-border object-cover" />
                   </td>
                   <td className="px-4 py-3">
-                    <button onClick={() => onOpen(p)} className="font-medium text-gold hover:underline">
+                    <span className="font-medium text-foreground">
                       {p.name}
-                    </button>
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {p.sku || "—"}
@@ -219,3 +219,5 @@ export function AllProducts({
     </div>
   );
 }
+
+

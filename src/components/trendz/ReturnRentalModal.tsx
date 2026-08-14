@@ -43,6 +43,10 @@ export function ReturnRentalModal({
   if (!rental) return null;
 
   const submit = async () => {
+    if (finalBalance > 0) {
+      toast.error(`Please collect the pending balance of ${inr(finalBalance)} to settle this rental.`);
+      return;
+    }
     setIsSubmitting(true);
     try {
       let finalNotes = rental.notes || "";
@@ -102,6 +106,7 @@ export function ReturnRentalModal({
           <Field label="Return Date">
             <input
               type="date"
+              min={todayISO()}
               className={monoInputClass}
               value={returnDate}
               onChange={(e) => setReturnDate(e.target.value)}
@@ -164,16 +169,21 @@ export function ReturnRentalModal({
           <span className="text-xs tracking-[0.14em] text-muted-foreground uppercase">
             Final Ledger Balance
           </span>
-          <span className={`font-mono text-xl font-semibold ${finalBalance === 0 ? "text-emerald" : finalBalance > 0 ? "text-gold" : "text-foreground"}`}>
+          <span className={`font-mono text-xl font-semibold ${finalBalance === 0 ? "text-emerald" : finalBalance > 0 ? "text-rust" : "text-foreground"}`}>
             {finalBalance === 0 ? "SETTLED" : `${inr(finalBalance)} DUE`}
           </span>
         </div>
+        {finalBalance > 0 && (
+          <div className="mt-2 text-xs text-rust font-medium">
+            Full balance must be collected before confirming return. Please collect {inr(finalBalance)}.
+          </div>
+        )}
 
         <div className="mt-4 flex gap-3">
           <button
-            className={goldButtonClass + " flex-1"}
+            className={goldButtonClass + " flex-1 disabled:opacity-50"}
             onClick={submit}
-            disabled={isSubmitting}
+            disabled={isSubmitting || finalBalance > 0}
           >
             {isSubmitting ? "Saving..." : "Confirm Return & Settle"}
           </button>

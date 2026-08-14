@@ -16,6 +16,7 @@ import {
   StatusBadge,
 } from "../primitives";
 import { ReturnRentalModal } from "../ReturnRentalModal";
+import { RentalSummaryModal } from "../RentalSummaryModal";
 import { TableSkeleton, SummaryCardsSkeleton } from "../Skeleton";
 import { useAuth } from "@/lib/trendz/AuthContext";
 import { generateLedgerPDF } from "@/lib/trendz/pdf";
@@ -44,6 +45,7 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [pdfLoading, setPdfLoading] = useState(false);
   const [returnRentalId, setReturnRentalId] = useState<string | null>(null);
+  const [viewRental, setViewRental] = useState<Rental | null>(null);
 
   const initial: Filters = {
     from: "",
@@ -67,16 +69,7 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
       return true;
     });
 
-    if (activeTab === "rental") {
-      filtered = filtered.filter(r => {
-        if (r.status === "out") return true;
-        if (r.status === "returned" && r.returnedOn) {
-          const daysSinceReturn = (new Date().getTime() - new Date(r.returnedOn).getTime()) / 86400000;
-          return daysSinceReturn <= 30;
-        }
-        return false;
-      });
-    } else if (applied.status !== "all") {
+    if (applied.status !== "all") {
       filtered = filtered.filter(r => r.status === applied.status);
     }
 
@@ -149,7 +142,7 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
 
       <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
         <h2 className="text-xl font-semibold">
-          {activeTab === "rental" ? "Active Rentals" : "Ledger Records"}
+          {activeTab === "rental" ? "All Rentals" : "Ledger Records"}
         </h2>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
           <select
@@ -228,17 +221,15 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
               </option>
             ))}
           </select>
-          {activeTab === "ledger" && (
-            <select
-              className={inputClass + " w-32"}
-              value={draft.status}
-              onChange={(e) => setDraft({ ...draft, status: e.target.value })}
-            >
-              <option value="all">All status</option>
-              <option value="out">Out</option>
-              <option value="returned">Returned</option>
-            </select>
-          )}
+          <select
+            className={inputClass + " w-32"}
+            value={draft.status}
+            onChange={(e) => setDraft({ ...draft, status: e.target.value })}
+          >
+            <option value="all">All status</option>
+            <option value="out">Active Rentals (Out)</option>
+            <option value="returned">Returned</option>
+          </select>
           <select
             className={inputClass + " w-32"}
             value={draft.payment}
@@ -278,7 +269,8 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
                 return (
                   <tr
                     key={r.id}
-                    className={"transition-colors duration-200 " + (late ? "overdue-row" : "row-zebra")}
+                    className={"transition-colors duration-200 cursor-pointer hover:bg-white/[0.04] " + (late ? "overdue-row" : "row-zebra")}
+                    onClick={() => setViewRental(r)}
                   >
                     <td className="px-3 py-2.5"><TokenBadge token={r.token} /></td>
                     <td className="px-3 py-2.5">
@@ -311,12 +303,12 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
                       <RentalStatusBadge status={r.status} />
                     </td>
                     <td className="px-3 py-2.5">
-                      <div className="relative flex items-center gap-2">
-                        <button className={ghostButtonClass + " border-indigo/40 text-indigo"} onClick={() => onEdit(r)}>Edit</button>
+                      <div className="relative flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                        <button className={ghostButtonClass + " border-indigo/40 text-indigo"} onClick={(e) => { e.stopPropagation(); onEdit(r); }}>Edit</button>
                         {r.status === "out" && (
-                          <button className={ghostButtonClass} onClick={() => setReturnRentalId(r.id)}>Return</button>
+                          <button className={ghostButtonClass} onClick={(e) => { e.stopPropagation(); setReturnRentalId(r.id); }}>Return</button>
                         )}
-                        <a href={waLink(r.customerPhone, waReminder(r))} target="_blank" rel="noreferrer"
+                        <a href={waLink(r.customerPhone, waReminder(r))} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
                           aria-label="WhatsApp reminder"
                           className="rounded-md border border-emerald/40 bg-emerald/10 p-1.5 text-emerald transition-colors duration-200 hover:bg-emerald/20">
                           <MessageCircle className="h-3.5 w-3.5" />
@@ -342,7 +334,7 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
                 const bal = balanceOf(r);
                 const days = daysBetween(r.rentDate, r.dueDate);
                 return (
-                  <tr key={r.id} className={"transition-colors duration-200 row-zebra"}>
+                  <tr key={r.id} className={"transition-colors duration-200 hover:bg-white/[0.04] row-zebra"}>
                     <td className="px-3 py-2.5"><TokenBadge token={r.token} /></td>
                     <td className="px-3 py-2.5">
                       <p className="whitespace-nowrap font-medium">{r.customerName}</p>
@@ -362,14 +354,7 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
                       <span className={bal > 0 ? "text-rust font-semibold" : "text-emerald"}>{inr(bal)}</span>
                     </td>
                     <td className="px-3 py-2.5">
-                      {r.status === "out" ? (
-                        <PaymentStatusSelect value={r.paymentStatus} onChange={(v) => {
-                          setPaymentStatus(r.id, v);
-                          toast.success(`${r.token} marked ${v}`);
-                        }} />
-                      ) : (
-                        <PaymentBadge status={r.paymentStatus} />
-                      )}
+                      <PaymentBadge status={r.paymentStatus} />
                     </td>
                     <td className="px-3 py-2.5"><RentalStatusBadge status={r.status} /></td>
                   </tr>
@@ -387,8 +372,14 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
 
       <ReturnRentalModal
         open={!!returnRentalId}
-        rental={rows.find(r => r.id === returnRentalId) || null}
+        rental={rentals.find((r) => r.id === returnRentalId) || null}
         onClose={() => setReturnRentalId(null)}
+      />
+
+      <RentalSummaryModal
+        open={!!viewRental}
+        rental={viewRental}
+        onClose={() => setViewRental(null)}
       />
     </div>
   );

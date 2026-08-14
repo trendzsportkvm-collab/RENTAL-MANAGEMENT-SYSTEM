@@ -10,11 +10,9 @@ export function StockLocations() {
 
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
-  const [isDefault, setIsDefault] = useState(false);
-  const [backorderLocation, setBackorderLocation] = useState(false);
-  const [autoAllocate, setAutoAllocate] = useState(false);
-  const [priority, setPriority] = useState(0);
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,21 +21,17 @@ export function StockLocations() {
     createLocation({
       name: name.trim(),
       slug: slug.trim() || name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-      isDefault,
-      backorderLocation,
-      autoAllocate,
-      priority,
       email,
+      phone,
+      address,
       enabled: true,
-    });
+    } as any);
 
     setName("");
     setSlug("");
-    setIsDefault(false);
-    setBackorderLocation(false);
-    setAutoAllocate(false);
-    setPriority(0);
     setEmail("");
+    setPhone("");
+    setAddress("");
   };
 
   const getProductCount = (locName: string) => {
@@ -101,64 +95,36 @@ export function StockLocations() {
             </div>
 
             <div>
-              <label className={labelClass}>Default for new products</label>
-              <select 
-                className={inputClass}
-                value={isDefault ? "yes" : "no"}
-                onChange={e => setIsDefault(e.target.value === "yes")}
-              >
-                <option value="no">No</option>
-                <option value="yes">Yes</option>
-              </select>
-              <p className="mt-1 text-xs text-muted-foreground">Should location be selected by default for new products?</p>
-            </div>
-
-            <div>
-              <label className={labelClass}>Backorder location</label>
-              <select 
-                className={inputClass}
-                value={backorderLocation ? "yes" : "no"}
-                onChange={e => setBackorderLocation(e.target.value === "yes")}
-              >
-                <option value="no">No</option>
-                <option value="yes">Yes</option>
-              </select>
-              <p className="mt-1 text-xs text-muted-foreground">Should backorder stock be allocated to this location? Only used if auto order allocate is enabled. Please ensure only one backorder location is set.</p>
-            </div>
-
-            <div>
-              <label className={labelClass}>Auto order allocate</label>
-              <select 
-                className={inputClass}
-                value={autoAllocate ? "yes" : "no"}
-                onChange={e => setAutoAllocate(e.target.value === "yes")}
-              >
-                <option value="no">No</option>
-                <option value="yes">Yes</option>
-              </select>
-              <p className="mt-1 text-xs text-muted-foreground">Should stock be auto allocated to stock locations when an order is placed? See priority field below to set priority.</p>
-            </div>
-
-            <div>
-              <label className={labelClass}>Location priority</label>
-              <input 
-                type="number" 
-                className={inputClass} 
-                value={priority}
-                onChange={e => setPriority(Number(e.target.value))}
-              />
-              <p className="mt-1 text-xs text-muted-foreground">This is the order in which stock is auto allocated if enabled.</p>
-            </div>
-
-            <div>
-              <label className={labelClass}>Location email</label>
+              <label className={labelClass}>Location Email</label>
               <input 
                 type="email" 
                 className={inputClass} 
                 value={email}
                 onChange={e => setEmail(e.target.value)}
               />
-              <p className="mt-1 text-xs text-muted-foreground">Email address for notifications when a customer buys from this location. Works only if auto order allocation is enabled for this location.</p>
+              <p className="mt-1 text-xs text-muted-foreground">Email address for the branch.</p>
+            </div>
+
+            <div>
+              <label className={labelClass}>Location Phone Number</label>
+              <input 
+                type="tel" 
+                className={inputClass} 
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">Contact number for the branch.</p>
+            </div>
+
+            <div>
+              <label className={labelClass}>Location Address</label>
+              <textarea 
+                rows={3}
+                className={inputClass} 
+                value={address}
+                onChange={e => setAddress(e.target.value)}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">Physical address of the branch.</p>
             </div>
 
             <div className="pt-2">
@@ -189,18 +155,17 @@ export function StockLocations() {
           </div>
 
           <div className="glass overflow-x-auto rounded-lg">
-            <table className="w-full text-left text-sm">
+            <table className="w-full min-w-[800px] text-left text-sm">
               <thead>
                 <tr className="border-b border-border bg-white/[0.02]">
                   <th className="w-12 px-4 py-3 text-center"><input type="checkbox" className="rounded border-border bg-transparent focus:ring-gold" /></th>
                   <th className="px-4 py-3 font-medium text-gold hover:text-gold/80 cursor-pointer">Name</th>
                   <th className="px-4 py-3 font-medium text-gold hover:text-gold/80 cursor-pointer">Slug</th>
+                  <th className="px-4 py-3 font-medium text-gold hover:text-gold/80 cursor-pointer">Email</th>
+                  <th className="px-4 py-3 font-medium text-gold hover:text-gold/80 cursor-pointer">Phone</th>
+                  <th className="px-4 py-3 font-medium text-gold hover:text-gold/80 cursor-pointer">Address</th>
                   <th className="px-4 py-3 font-medium text-gold hover:text-gold/80 cursor-pointer">Count</th>
-                  <th className="px-4 py-3 font-medium">Enabled/Disabled</th>
-                  <th className="px-4 py-3 font-medium text-center">Auto Allocation</th>
-                  <th className="px-4 py-3 font-medium text-center">Map Visibility</th>
-                  <th className="px-4 py-3 font-medium">Priority</th>
-                  <th className="px-4 py-3 font-medium">Default Location</th>
+                  <th className="px-4 py-3 font-medium">Enabled</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -215,23 +180,20 @@ export function StockLocations() {
                     <td className="px-4 py-3 text-muted-foreground">
                       {loc.slug}
                     </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {loc.email || "—"}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                      {loc.phone || "—"}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground truncate max-w-[200px]" title={loc.address}>
+                      {loc.address || "—"}
+                    </td>
                     <td className="px-4 py-3 text-blue-400 hover:underline cursor-pointer">
                       {getProductCount(loc.name)}
                     </td>
                     <td className="px-4 py-3">
-                      <EyeOff className="h-4 w-4 text-muted-foreground opacity-30 hover:opacity-100 cursor-pointer" />
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <div className="mx-auto flex h-4 w-4 items-center justify-center rounded-full border-2 border-muted-foreground/30"></div>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <MapPin className="mx-auto h-4 w-4 text-muted-foreground opacity-50" />
-                    </td>
-                    <td className="px-4 py-3 text-blue-400">
-                      {loc.priority}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {loc.isDefault ? "Yes" : ""}
+                      {loc.enabled ? <span className="text-emerald">Yes</span> : <span className="text-rust">No</span>}
                     </td>
                   </tr>
                 ))}

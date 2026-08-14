@@ -10,6 +10,17 @@ export interface ProductVariation {
   stock: Record<string, number>;
   attributes: Record<string, string>;
   enabled: boolean;
+  physicalItems?: InventoryItem[];
+}
+
+export interface InventoryItem {
+  id: string;
+  productId: string;
+  variationId: string;
+  branchId: string;
+  itemSku: string;
+  status: "available" | "rented" | "maintenance";
+  qrToken?: string;
 }
 
 export interface ProductAttribute {
@@ -61,10 +72,8 @@ export interface StockLocation {
   id: string;
   name: string;
   slug: string;
-  isDefault: boolean;
-  backorderLocation: boolean;
-  autoAllocate: boolean;
-  priority: number;
+  address?: string;
+  phone?: string;
   email: string;
   enabled: boolean;
 }

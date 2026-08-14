@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useTrendz } from "@/lib/trendz/store";
 import type { PaymentStatus, Rental } from "@/lib/trendz/types";
-import { inr } from "@/lib/trendz/utils";
+import { inr, todayISO } from "@/lib/trendz/utils";
 import { Field, goldButtonClass, inputClass, monoInputClass } from "./primitives";
 
 export function EditRentalModal({
@@ -27,6 +27,8 @@ export function EditRentalModal({
     setForm((f) => (f ? { ...f, [key]: value } : f));
 
   const balance = Math.max(0, form.total - form.advance);
+  const dynamicPaymentStatus: PaymentStatus =
+    form.advance >= form.total ? "paid" : form.advance > 0 ? "partial" : "unpaid";
 
   const save = () => {
     if (!form.customerName.trim()) return setError("Customer name is required");
@@ -40,7 +42,7 @@ export function EditRentalModal({
       dailyRate: form.dailyRate,
       total: form.total,
       advance: form.advance,
-      paymentStatus: form.paymentStatus,
+      paymentStatus: dynamicPaymentStatus,
       notes: form.notes,
     });
     onClose();
@@ -74,6 +76,7 @@ export function EditRentalModal({
           <Field label="Rent Date">
             <input
               type="date"
+              min={todayISO()}
               className={monoInputClass}
               value={form.rentDate}
               onChange={(e) => set("rentDate", e.target.value)}
@@ -115,8 +118,8 @@ export function EditRentalModal({
           <Field label="Payment Status">
             <select
               className={inputClass}
-              value={form.paymentStatus}
-              onChange={(e) => set("paymentStatus", e.target.value as PaymentStatus)}
+              value={dynamicPaymentStatus}
+              disabled
             >
               <option value="unpaid">Unpaid</option>
               <option value="partial">Partial</option>

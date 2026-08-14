@@ -50,7 +50,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
           *,
           categories(name),
           product_variations(
-            id, name, sku, daily_rate, is_enabled,
+            id, name, sku, daily_rate, is_enabled, attributes,
             product_stock(quantity, branches(name))
           )
         `),
@@ -69,9 +69,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
         setLocations(branchesRes.data
           .map(b => ({
             id: b.id, name: b.name, slug: b.slug,
-            isDefault: false, backorderLocation: false, autoAllocate: false,
-
-            priority: 0, email: b.email || "", enabled: b.is_active
+            email: b.email || "", phone: b.phone || "", address: b.address || "", enabled: b.is_active
         })));
       }
 
@@ -84,17 +82,20 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
           id: p.id,
           name: p.name,
           sku: p.sku || "",
-          dailyRate: p.daily_rate || 0,
+          dailyRate: p.daily_rate || (p.product_variations?.find((v: any) => v.daily_rate > 0)?.daily_rate) || 0,
           image: p.image_url || "https://placehold.co/600x600/eeeeee/999999?text=No+Image",
           description: p.description,
           category: p.categories?.name || "Uncategorized",
+          purchasePrice: p.purchase_price || 0,
+          replacementValue: p.replacement_value || 0,
+          attributes: p.attributes || [],
           variations: (p.product_variations || []).map((v: any) => ({
             id: v.id,
             name: v.name,
             sku: v.sku,
             dailyRate: v.daily_rate || 0,
             enabled: v.is_enabled ?? true,
-            attributes: {},
+            attributes: v.attributes || {},
             stock: (v.product_stock || []).reduce((acc: any, s: any) => {
               if (s.branches?.name) acc[s.branches.name] = s.quantity;
               return acc;
@@ -184,6 +185,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
             category_id: categoryId,
             purchase_price: draft.purchasePrice || 0,
             replacement_value: draft.replacementValue || 0,
+            attributes: draft.attributes || [],
           })
           .select("id")
           .single();
@@ -214,6 +216,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
                 sku: variation.sku,
                 daily_rate: variation.dailyRate,
                 is_enabled: variation.enabled,
+                attributes: variation.attributes || {},
               })
               .select("id")
               .single();
@@ -224,12 +227,34 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
                 .map(([branchName, qty]) => {
                   const branch = branches.find((b) => b.name === branchName);
                   return branch
-                    ? { variation_id: insertedVar.id, branch_id: branch.id, quantity: qty }
+                    ? { product_id: realId, variation_id: insertedVar.id, branch_id: branch.id, quantity: qty }
                     : null;
                 })
                 .filter(Boolean);
               if (varStockRows.length > 0) {
                 await supabase.from("product_stock").insert(varStockRows as any[]);
+              }
+              
+              let skuCounter = 1;
+              const inventoryItems = [];
+              for (const [branchName, qty] of Object.entries(variation.stock)) {
+                if (qty <= 0) continue;
+                const branch = branches.find((b) => b.name === branchName);
+                if (!branch) continue;
+                for (let i = 0; i < qty; i++) {
+                  const itemSku = `${variation.sku}-${String(skuCounter).padStart(3, '0')}`;
+                  inventoryItems.push({
+                    product_id: realId,
+                    variation_id: insertedVar.id,
+                    branch_id: branch.id,
+                    item_sku: itemSku,
+                    status: 'available'
+                  });
+                  skuCounter++;
+                }
+              }
+              if (inventoryItems.length > 0) {
+                await supabase.from("inventory_items").insert(inventoryItems);
               }
             }
           }
@@ -255,6 +280,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
         if (patch.description !== undefined) dbPatch.description = patch.description;
         if (patch.purchasePrice !== undefined) dbPatch.purchase_price = patch.purchasePrice;
         if (patch.replacementValue !== undefined) dbPatch.replacement_value = patch.replacementValue;
+        if (patch.attributes !== undefined) dbPatch.attributes = patch.attributes;
         if (patch.category !== undefined) {
           const { data: catData } = await supabase.from("categories").select("id").ilike("name", patch.category).maybeSingle();
           if (catData) {
@@ -287,7 +313,8 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
                     name: v.name,
                     sku: v.sku,
                     daily_rate: v.dailyRate,
-                    is_enabled: v.enabled
+                    is_enabled: v.enabled,
+                    attributes: v.attributes || {}
                   }, { onConflict: 'sku' })
                   .select("id")
                   .single();
@@ -303,7 +330,8 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
                     name: v.name,
                     sku: v.sku,
                     daily_rate: v.dailyRate,
-                    is_enabled: v.enabled
+                    is_enabled: v.enabled,
+                    attributes: v.attributes || {}
                   })
                   .eq("id", realVarId);
                   
@@ -319,12 +347,57 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
                 .filter(([, qty]) => qty > 0)
                 .map(([branchName, qty]) => {
                   const branch = branches.find((b) => b.name === branchName);
-                  return branch ? { variation_id: realVarId, branch_id: branch.id, quantity: qty } : null;
+                  return branch ? { product_id: product.id, variation_id: realVarId, branch_id: branch.id, quantity: qty } : null;
                 }).filter(Boolean);
                 
               if (varStockRows.length > 0) {
                 const { error: stockErr } = await supabase.from("product_stock").insert(varStockRows as any[]);
                 if (stockErr) console.error("Stock insert error for", v.sku, stockErr);
+              }
+
+              // Update inventory items (only adding new ones if stock increased)
+              const { data: existingItems } = await supabase.from("inventory_items")
+                .select("item_sku, branch_id")
+                .eq("variation_id", realVarId)
+                .order("item_sku", { ascending: false });
+                
+              let nextSkuNumber = 1;
+              if (existingItems && existingItems.length > 0) {
+                const lastSku = existingItems[0].item_sku;
+                const parts = lastSku.split('-');
+                const num = parseInt(parts[parts.length - 1], 10);
+                if (!isNaN(num)) nextSkuNumber = num + 1;
+              }
+
+              const branchCounts: Record<string, number> = {};
+              existingItems?.forEach(item => {
+                branchCounts[item.branch_id] = (branchCounts[item.branch_id] || 0) + 1;
+              });
+
+              const newInventoryItems = [];
+              for (const [branchName, qty] of Object.entries(v.stock)) {
+                if (qty <= 0) continue;
+                const branch = branches.find((b) => b.name === branchName);
+                if (!branch) continue;
+                
+                const existingCount = branchCounts[branch.id] || 0;
+                const toCreate = qty - existingCount;
+                
+                for (let i = 0; i < toCreate; i++) {
+                  const itemSku = `${v.sku}-${String(nextSkuNumber).padStart(3, '0')}`;
+                  newInventoryItems.push({
+                    product_id: id,
+                    variation_id: realVarId,
+                    branch_id: branch.id,
+                    item_sku: itemSku,
+                    status: 'available'
+                  });
+                  nextSkuNumber++;
+                }
+              }
+
+              if (newInventoryItems.length > 0) {
+                await supabase.from("inventory_items").insert(newInventoryItems);
               }
             } catch (innerErr) {
               console.error("Error processing variation", v.sku, innerErr);
@@ -342,6 +415,27 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
     const rental: Rental = { ...draft, id: tempId, token: `TRZ-Pending`, status: "out" };
     setRentals((prev) => [rental, ...prev]);
     
+    setProducts((prev) => prev.map(p => {
+      if (p.id === draft.productId && draft.variationId && p.variations) {
+        return {
+          ...p,
+          variations: p.variations.map(v => {
+            if (v.id === draft.variationId) {
+              return {
+                ...v,
+                stock: {
+                  ...v.stock,
+                  [draft.branch]: Math.max(0, (v.stock[draft.branch] || 0) - draft.qty)
+                }
+              };
+            }
+            return v;
+          })
+        };
+      }
+      return p;
+    }));
+
     try {
       // 1. Resolve branch_id
       const { data: branch } = await supabase.from('branches').select('id').ilike('name', draft.branch).maybeSingle();
@@ -387,6 +481,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
       const days = Math.max(1, Math.ceil((new Date(draft.dueDate).getTime() - new Date(draft.rentDate).getTime()) / (1000 * 3600 * 24)));
       const { error: itemErr } = await supabase.from('rental_items').insert({
         rental_id: insertedRental.id,
+        product_id: draft.productId,
         variation_id: draft.variationId || null,
         product_name: draft.productName,
         sku: draft.sku,
@@ -397,7 +492,39 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
         subtotal: draft.total
       });
 
-      if (itemErr) console.error("Failed to insert rental item:", itemErr);
+      if (itemErr) {
+        console.error("Failed to insert rental item:", itemErr);
+        throw new Error("Failed to insert rental item: " + itemErr.message);
+      }
+
+      // 5. Deduct stock manually
+      if (draft.variationId && branch) {
+        const { data: currentStock } = await supabase.from('product_stock')
+          .select('id, quantity')
+          .eq('variation_id', draft.variationId)
+          .eq('branch_id', branch.id)
+          .maybeSingle();
+          
+        if (currentStock) {
+          await supabase.from('product_stock')
+            .update({ quantity: Math.max(0, currentStock.quantity - draft.qty) })
+            .eq('id', currentStock.id);
+        }
+        
+        const { data: availItems } = await supabase.from('inventory_items')
+          .select('id')
+          .eq('variation_id', draft.variationId)
+          .eq('branch_id', branch.id)
+          .eq('status', 'available')
+          .limit(draft.qty);
+          
+        if (availItems && availItems.length > 0) {
+          const ids = availItems.map((i: any) => i.id);
+          await supabase.from('inventory_items')
+            .update({ status: 'rented' })
+            .in('id', ids);
+        }
+      }
 
       const finalRental: Rental = { ...draft, id: insertedRental.id, token: insertedRental.token, status: "out" };
       // Update local state with real IDs
@@ -405,6 +532,27 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
       return finalRental;
     } catch (err) {
       console.error("createRental sync error:", err);
+      setRentals(prev => prev.filter(r => r.id !== tempId));
+      setProducts((prev) => prev.map(p => {
+        if (p.id === draft.productId && draft.variationId && p.variations) {
+          return {
+            ...p,
+            variations: p.variations.map(v => {
+              if (v.id === draft.variationId) {
+                return {
+                  ...v,
+                  stock: {
+                    ...v.stock,
+                    [draft.branch]: (v.stock[draft.branch] || 0) + draft.qty
+                  }
+                };
+              }
+              return v;
+            })
+          };
+        }
+        return p;
+      }));
       throw err;
     }
   }, [supabase]);
@@ -433,27 +581,97 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
   }, [supabase]);
 
   const markReturned: StoreValue["markReturned"] = useCallback((id, payload) => {
-    setRentals((prev) => prev.map((r) => r.id === id ? { 
-      ...r, 
-      status: "returned" as const, 
-      paymentStatus: payload.payment_status, 
-      condition: payload.condition, 
-      returnedOn: payload.returned_on,
-      total: payload.total,
-      advance: payload.advance,
-      notes: payload.notes
-    } : r));
-    
-    if (!id.startsWith('r')) {
-      supabase.from('rentals').update({ 
-        status: 'returned', 
-        payment_status: payload.payment_status, 
-        condition: payload.condition,
-        returned_on: payload.returned_on,
+    setRentals((prev) => {
+      const targetRental = prev.find(r => r.id === id);
+      if (targetRental && targetRental.status !== "returned") {
+        setProducts((pPrev) => pPrev.map(p => {
+          if (p.id === targetRental.productId && targetRental.variationId && p.variations) {
+            return {
+              ...p,
+              variations: p.variations.map(v => {
+                if (v.id === targetRental.variationId) {
+                  return {
+                    ...v,
+                    stock: {
+                      ...v.stock,
+                      [targetRental.branch]: (v.stock[targetRental.branch] || 0) + targetRental.qty
+                    }
+                  };
+                }
+                return v;
+              })
+            };
+          }
+          return p;
+        }));
+      }
+
+      return prev.map((r) => r.id === id ? { 
+        ...r, 
+        status: "returned" as const, 
+        paymentStatus: payload.payment_status, 
+        condition: payload.condition, 
+        returnedOn: payload.returned_on,
         total: payload.total,
         advance: payload.advance,
         notes: payload.notes
-      }).eq('id', id).then();
+      } : r);
+    });
+    
+    if (!id.startsWith('r')) {
+      (async () => {
+        try {
+          await supabase.from('rentals').update({ 
+            status: 'returned', 
+            payment_status: payload.payment_status, 
+            condition: payload.condition,
+            returned_on: payload.returned_on,
+            total: payload.total,
+            advance: payload.advance,
+            notes: payload.notes
+          }).eq('id', id);
+
+          // Get the rental to restore stock
+          const { data: rental } = await supabase.from('rentals').select('branch_id').eq('id', id).single();
+          const { data: items } = await supabase.from('rental_items').select('variation_id, qty').eq('rental_id', id);
+          
+          if (rental && items) {
+            for (const item of items) {
+              if (!item.variation_id) continue;
+              
+              // 1. Restore product_stock
+              const { data: currentStock } = await supabase.from('product_stock')
+                .select('id, quantity')
+                .eq('variation_id', item.variation_id)
+                .eq('branch_id', rental.branch_id)
+                .maybeSingle();
+                
+              if (currentStock) {
+                await supabase.from('product_stock')
+                  .update({ quantity: currentStock.quantity + item.qty })
+                  .eq('id', currentStock.id);
+              }
+              
+              // 2. Restore inventory_items status
+              const { data: rentedItems } = await supabase.from('inventory_items')
+                .select('id')
+                .eq('variation_id', item.variation_id)
+                .eq('branch_id', rental.branch_id)
+                .eq('status', 'rented')
+                .limit(item.qty);
+                
+              if (rentedItems && rentedItems.length > 0) {
+                const ids = rentedItems.map((i: any) => i.id);
+                await supabase.from('inventory_items')
+                  .update({ status: 'available' })
+                  .in('id', ids);
+              }
+            }
+          }
+        } catch (err) {
+          console.error("Failed to mark returned in DB:", err);
+        }
+      })();
     }
   }, [supabase]);
 
@@ -556,7 +774,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
               const qty = Number(val);
               if (branchId && qty >= 0) {
                 const stockId = existingStock?.find(s => s.variation_id === vId && s.branch_id === branchId)?.id || crypto.randomUUID();
-                stockToUpsert.push({ id: stockId, variation_id: vId, branch_id: branchId, quantity: qty });
+                stockToUpsert.push({ id: stockId, product_id: productId, variation_id: vId, branch_id: branchId, quantity: qty });
                 vStock[branchName] = qty;
               }
             }
@@ -601,6 +819,8 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
       name: draft.name,
       slug: draft.slug,
       email: draft.email || null,
+      phone: draft.phone || null,
+      address: draft.address || null,
       is_active: draft.enabled !== false
     }).select('id').single().then(({ data, error }) => {
       if (data && !error) {
@@ -643,3 +863,5 @@ export function useTrendz() {
   if (!ctx) throw new Error("useTrendz must be used inside TrendzProvider");
   return ctx;
 }
+
+

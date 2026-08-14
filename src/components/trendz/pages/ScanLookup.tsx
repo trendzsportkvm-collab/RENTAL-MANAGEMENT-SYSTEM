@@ -16,7 +16,7 @@ const CameraScanner = dynamic(
 );
 
 export function ScanLookup({ onPutOut }: { onPutOut: (p: Product, branch?: string, variationId?: string) => void }) {
-  const { products, rentals, markReturned, isLoading } = useTrendz();
+  const { products, rentals, markReturned, isLoading, branches } = useTrendz();
   const { profile } = useAuth();
   const [query, setQuery] = useState("");
   const [result, setResult] = useState<Product | null>(null);
@@ -149,7 +149,7 @@ export function ScanLookup({ onPutOut }: { onPutOut: (p: Product, branch?: strin
                 <div className="min-w-[14rem] flex-1">
                   <h2 className="font-display text-3xl font-semibold">{result.name}</h2>
                   <p className="mt-1 font-mono text-xs text-muted-foreground">{result.sku}</p>
-                  <p className="mt-3 font-mono text-lg text-gold">{inr(result.dailyRate)}/day</p>
+                  <p className="mt-3 font-mono text-lg text-gold">{inr(result.dailyRate || 0)}/day</p>
                   <span className="mt-2 inline-block rounded-full border border-gold/30 bg-gold/10 px-2.5 py-0.5 text-xs font-medium text-gold">
                     Variable · {(result.variations || []).filter(v => v.enabled).length} variants
                   </span>
@@ -165,7 +165,7 @@ export function ScanLookup({ onPutOut }: { onPutOut: (p: Product, branch?: strin
                   }
                   
                   return (
-                  <table className="w-full text-sm">
+                  <table className="w-full min-w-[600px] text-sm">
                     <thead>
                       <tr className="bg-white/[0.04] text-left text-[11px] tracking-[0.12em] text-muted-foreground uppercase">
                         <th className="px-4 py-2.5 font-medium">Variation</th>
@@ -182,10 +182,10 @@ export function ScanLookup({ onPutOut }: { onPutOut: (p: Product, branch?: strin
                             <td className="px-4 py-3">
                               {profile?.role === "super_admin" ? (
                                 <div className="flex flex-wrap gap-x-5 gap-y-2">
-                                  {Object.entries(v.stock).map(([b, q]) => (
+                                  {branches.map((b) => (
                                     <div key={b} className="flex flex-col">
                                       <span className="text-[10px] text-muted-foreground uppercase mb-0.5">{b}</span>
-                                      <StockBadge qty={q} />
+                                      <StockBadge qty={v.stock[b] || 0} />
                                     </div>
                                   ))}
                                 </div>
@@ -262,3 +262,4 @@ export function ScanLookup({ onPutOut }: { onPutOut: (p: Product, branch?: strin
     </div>
   );
 }
+

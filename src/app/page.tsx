@@ -122,7 +122,12 @@ function TrendzApp() {
       <RentalStatusModal
         product={statusProduct}
         onClose={() => setStatusProduct(null)}
-        onPutOut={(p) => setRentalProduct(p)}
+        onPutOut={(p, branch, variationId) => {
+          setRentalBranch(branch);
+          setRentalVariationId(variationId);
+          setRentalProduct(p);
+          setStatusProduct(null);
+        }}
         onEdit={setEditing}
       />
       <EditRentalModal rental={editing} onClose={() => setEditing(null)} />

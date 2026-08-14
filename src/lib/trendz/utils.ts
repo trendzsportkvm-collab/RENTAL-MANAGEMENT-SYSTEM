@@ -3,19 +3,23 @@ import type { PaymentStatus, Rental } from "./types";
 export const inr = (n: number) =>
   "₹" + Math.round(n).toLocaleString("en-IN");
 
-export const todayISO = () => new Date().toISOString().slice(0, 10);
+export const todayISO = () => {
+  const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
+  return formatter.format(new Date());
+};
 
 export const shiftISO = (days: number) => {
   const d = new Date();
   d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
+  return formatter.format(d);
 };
 
 /** YYYY-MM-DD -> DD/MM/YYYY */
 export const fmtDate = (iso: string) => {
   if (!iso) return "—";
   const [y, m, d] = iso.split("-");
-  return `${d}/${m}/${y}`;
+  return `${d}/${m}/${y.slice(2)}`;
 };
 
 export const daysBetween = (fromISO: string, toISO: string) => {
