@@ -45,11 +45,15 @@ export function Sidebar({
     {
       title: "Products",
       items: [
-        { key: "products" as PageKey, label: "All Products", icon: LayoutGrid, adminOnly: false },
+        { key: "products" as PageKey, label: "All Products", icon: LayoutGrid },
         { key: "add-product" as PageKey, label: "Add New Product", icon: Plus, adminOnly: true },
-        { key: "stock" as PageKey, label: "Stock Locations", icon: LayoutGrid, adminOnly: true },
+        { key: "stock" as PageKey, label: "Stock Locations", icon: LayoutGrid, superAdminOnly: true },
         { key: "import" as PageKey, label: "CSV Import", icon: Upload, adminOnly: true },
-      ].filter(item => !item.adminOnly || profile?.role === "super_admin" || profile?.role === "owner"),
+      ].filter(item => {
+        if ((item as any).superAdminOnly) return profile?.role === "super_admin";
+        if ((item as any).adminOnly) return profile?.role === "super_admin" || profile?.role === "owner";
+        return true;
+      }),
     },
   ];
 
