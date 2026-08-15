@@ -66,6 +66,8 @@ export interface Rental {
   returnedOn?: string;
   condition?: ReturnCondition;
   bufferDays?: number;
+  extra_fees?: number;
+  extra_fees_reason?: string;
 }
 
 export interface StockLocation {

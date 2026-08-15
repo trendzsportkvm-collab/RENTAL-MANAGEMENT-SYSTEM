@@ -67,7 +67,25 @@ export function RentalSummaryModal({
                 <span className="text-muted-foreground">Base Total</span>
                 <span className="font-mono">{inr(rental.total)}</span>
               </div>
-              <div className="flex justify-between items-center">
+
+              {rental.extra_fees ? (
+                <div className="mt-4 p-3 rounded-md bg-orange-500/10 border border-orange-500/20">
+                  <div className="flex justify-between items-center text-sm font-medium text-orange-500">
+                    <span>Extra Fees (Damage/Late)</span>
+                    <span>{inr(rental.extra_fees)}</span>
+                  </div>
+                  {rental.extra_fees_reason && (
+                    <p className="mt-1 text-xs text-orange-500/80 italic">{rental.extra_fees_reason}</p>
+                  )}
+                </div>
+              ) : null}
+
+              <div className="flex justify-between mt-2 pt-2 border-t border-border/50 text-base font-semibold">
+                <span>Grand Total</span>
+                <span className="font-mono">{inr((rental.total || 0) + (rental.extra_fees || 0))}</span>
+              </div>
+
+              <div className="flex justify-between items-center pt-2 border-t border-border/50 mt-2">
                 <span className="text-muted-foreground">Advance/Collected</span>
                 <span className="font-mono text-emerald">{inr(rental.advance)}</span>
               </div>

@@ -25,7 +25,7 @@ interface StoreValue {
   deleteProduct: (id: string) => void;
   updateRental: (id: string, patch: Partial<Rental>) => void;
   setPaymentStatus: (id: string, p: PaymentStatus) => void;
-  markReturned: (id: string, payload: { condition: ReturnCondition; returned_on: string; total: number; advance: number; payment_status: "paid" | "partial" | "unpaid"; notes: string }) => void;
+  markReturned: (id: string, payload: { condition: ReturnCondition; returned_on: string; total: number; advance: number; payment_status: "paid" | "partial" | "unpaid"; notes: string; extra_fees?: number; extra_fees_reason?: string }) => void;
   importProducts: (rows: ImportRow[]) => Promise<{ created: number; updated: number; errors: string[] }>;
   createLocation: (loc: Omit<StockLocation, "id">) => void;
   addCategory: (name: string, baseSku?: string) => Promise<Category | null>;
@@ -57,7 +57,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
           )
         `),
         supabase.from('rentals').select(`
-          id, token, rent_date, due_date, total, advance, payment_status, status, returned_on, condition, notes,
+          id, token, rent_date, due_date, total, advance, payment_status, status, returned_on, condition, notes, extra_fees, extra_fees_reason,
           customers(full_name, phone),
           branches(name),
           rental_items(
@@ -132,6 +132,8 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
             notes: r.notes || "",
             returnedOn: r.returned_on || undefined,
             condition: r.condition || undefined,
+            extra_fees: r.extra_fees || 0,
+            extra_fees_reason: r.extra_fees_reason || undefined,
           };
         }));
       }
@@ -644,7 +646,9 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
         returnedOn: payload.returned_on,
         total: payload.total,
         advance: payload.advance,
-        notes: payload.notes
+        notes: payload.notes,
+        extra_fees: payload.extra_fees,
+        extra_fees_reason: payload.extra_fees_reason
       } : r);
     });
     
@@ -658,7 +662,9 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
             returned_on: payload.returned_on,
             total: payload.total,
             advance: payload.advance,
-            notes: payload.notes
+            notes: payload.notes,
+            extra_fees: payload.extra_fees || 0,
+            extra_fees_reason: payload.extra_fees_reason || null
           }).eq('id', id);
 
           // Get the rental to restore stock

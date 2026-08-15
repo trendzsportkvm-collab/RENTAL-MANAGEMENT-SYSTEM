@@ -53,17 +53,16 @@ export function ReturnRentalModal({
       if (notes.trim()) {
         finalNotes = finalNotes ? `${finalNotes}\nReturn Note: ${notes.trim()}` : `Return Note: ${notes.trim()}`;
       }
-      if (extraFees > 0) {
-        finalNotes = finalNotes ? `${finalNotes}\nExtra Fees (Damage/Late): ${inr(extraFees)}` : `Extra Fees (Damage/Late): ${inr(extraFees)}`;
-      }
 
       markReturned(rental.id, {
         condition,
         returned_on: returnDate,
-        total: finalTotal,
+        total: rental.total || 0, // Keep original total
         advance: newAdvance,
         payment_status: finalBalance <= 0 ? "paid" : newAdvance > 0 ? "partial" : "unpaid",
         notes: finalNotes,
+        extra_fees: extraFees,
+        extra_fees_reason: extraFees > 0 ? "Damage/Late fees assessed on return" : undefined,
       });
       
       toast.success("Rental successfully returned & ledger updated!");
