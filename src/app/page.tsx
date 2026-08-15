@@ -12,6 +12,7 @@ import { AllRentals } from "@/components/trendz/pages/AllRentals";
 import { Dashboard } from "@/components/trendz/pages/Dashboard";
 import { CsvImport } from "@/components/trendz/pages/CsvImport";
 import { StockLocations } from "@/components/trendz/pages/StockLocations";
+import { Categories } from "@/components/trendz/pages/Categories";
 import { AddProduct } from "@/components/trendz/pages/AddProduct";
 import { TrendzProvider } from "@/lib/trendz/store";
 import type { Product, Rental } from "@/lib/trendz/types";
@@ -91,6 +92,7 @@ function TrendzApp() {
           />
         ) : null}
         {page === "stock" ? <StockLocations /> : null}
+        {page === "categories" ? <Categories /> : null}
         {page === "import" ? <CsvImport /> : null}
         {page === "add-product" ? (
           <AddProduct 

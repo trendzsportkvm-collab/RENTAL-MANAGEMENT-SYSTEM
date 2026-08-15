@@ -355,29 +355,28 @@ export function AddProduct({
                   />
                 </Field>
                 <Field label="Category">
-                  <input
-                    list="categories-list"
+                  <select
                     className={inputClass}
                     value={category}
                     onChange={(e) => {
                       const val = e.target.value;
                       setCategory(val);
-                      if (!sku || sku.match(/^[A-Z]{2,3}-001$/)) {
+                      const selectedCat = categories.find(c => c.name === val);
+                      if (selectedCat?.base_sku && (!sku || sku.match(/^[A-Z]+-[0-0]*[1-9]*$/) || sku.length < 5)) {
+                        setSku(`${selectedCat.base_sku}-001`);
+                      } else if (!sku && val) {
                         const prefix = val.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, '');
-                        if (prefix.length >= 2) {
-                          setSku(`${prefix}-001`);
-                        } else if (val.trim() === "") {
-                          setSku("");
-                        }
+                        if (prefix.length >= 2) setSku(`${prefix}-001`);
+                      } else if (val === "") {
+                        setSku("");
                       }
                     }}
-                    placeholder="e.g. Suit, Jeans"
-                  />
-                  <datalist id="categories-list">
+                  >
+                    <option value="" disabled>Select a Category</option>
                     {categories.map((c) => (
-                      <option key={c} value={c} />
+                      <option key={c.id} value={c.name}>{c.name}</option>
                     ))}
-                  </datalist>
+                  </select>
                 </Field>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field label="Base SKU">

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useState, useEffect, type ReactNode } from "react";
-import type { PaymentStatus, Product, Rental, ReturnCondition, StockLocation } from "./types";
+import type { PaymentStatus, Product, Rental, ReturnCondition, StockLocation, Category } from "./types";
 import { nextToken, shiftISO, todayISO } from "./utils";
 import { createClient } from "../supabase/client";
 
@@ -18,7 +18,7 @@ interface StoreValue {
   rentals: Rental[];
   branches: string[];
   locations: StockLocation[];
-  categories: string[];
+  categories: Category[];
   createRental: (r: Omit<Rental, "id" | "token" | "status">) => Promise<Rental>;
   createProduct: (p: Omit<Product, "id">) => Product;
   updateProduct: (id: string, p: Partial<Product>) => void;
@@ -28,6 +28,8 @@ interface StoreValue {
   markReturned: (id: string, payload: { condition: ReturnCondition; returned_on: string; total: number; advance: number; payment_status: "paid" | "partial" | "unpaid"; notes: string }) => void;
   importProducts: (rows: ImportRow[]) => Promise<{ created: number; updated: number; errors: string[] }>;
   createLocation: (loc: Omit<StockLocation, "id">) => void;
+  addCategory: (name: string, baseSku?: string) => Promise<Category | null>;
+  deleteCategory: (id: string) => Promise<void>;
 }
 
 export const StoreContext = createContext<StoreValue | null>(null);
@@ -36,7 +38,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
   const [rentals, setRentals] = useState<Rental[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [locations, setLocations] = useState<StockLocation[]>([]);
   const supabase = createClient();
 
@@ -74,7 +76,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
       }
 
       if (catRes.data) {
-        setCategories(catRes.data.map(c => c.name));
+        setCategories(catRes.data.map(c => ({ id: c.id, name: c.name, base_sku: c.base_sku || undefined })));
       }
 
       if (productsRes.data) {
@@ -878,10 +880,36 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
     }
   }, [supabase, products]);
 
+  
+  const addCategory = useCallback(async (name: string, baseSku?: string) => {
+    const { data, error } = await supabase.from("categories").insert({
+      name,
+      base_sku: baseSku || null
+    }).select("*").single();
+
+    if (error || !data) {
+      console.error("Failed to add category:", error);
+      return null;
+    }
+
+    const newCat: Category = { id: data.id, name: data.name, base_sku: data.base_sku || undefined };
+    setCategories(prev => [...prev, newCat]);
+    return newCat;
+  }, [supabase]);
+
+  const deleteCategory = useCallback(async (id: string) => {
+    const { error } = await supabase.from("categories").delete().eq("id", id);
+    if (error) {
+      console.error("Failed to delete category:", error);
+      return;
+    }
+    setCategories(prev => prev.filter(c => c.id !== id));
+  }, [supabase]);
+
   const value = useMemo(() => ({
     isLoading, products, rentals, branches, locations, categories,
-    createProduct, updateProduct, deleteProduct, createRental, updateRental, setPaymentStatus, markReturned, importProducts, createLocation,
-  }), [isLoading, products, rentals, branches, locations, categories, createProduct, updateProduct, deleteProduct, createRental, updateRental, setPaymentStatus, markReturned, importProducts, createLocation]);
+    createProduct, updateProduct, deleteProduct, createRental, updateRental, setPaymentStatus, markReturned, importProducts, createLocation, addCategory, deleteCategory
+  }), [isLoading, products, rentals, branches, locations, categories, createProduct, updateProduct, deleteProduct, createRental, updateRental, setPaymentStatus, markReturned, importProducts, createLocation, addCategory, deleteCategory]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

@@ -77,3 +77,10 @@ export interface StockLocation {
   email: string;
   enabled: boolean;
 }
+
+export interface Category {
+  id: string;
+  name: string;
+  base_sku?: string;
+}
+

@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { useTrendz } from "@/lib/trendz/store";
 import { useAuth } from "@/lib/trendz/AuthContext";
 
-export type PageKey = "scan" | "products" | "dashboard" | "rentals" | "stock" | "import" | "add-product";
+export type PageKey = "scan" | "products" | "dashboard" | "rentals" | "stock" | "categories" | "import" | "add-product";
 
 export function Sidebar({
   active,
@@ -47,6 +47,7 @@ export function Sidebar({
       items: [
         { key: "products" as PageKey, label: "All Products", icon: LayoutGrid },
         { key: "add-product" as PageKey, label: "Add New Product", icon: Plus, adminOnly: true },
+        { key: "categories" as PageKey, label: "Categories", icon: Tag, adminOnly: true },
         { key: "stock" as PageKey, label: "Stock Locations", icon: LayoutGrid, superAdminOnly: true },
         { key: "import" as PageKey, label: "CSV Import", icon: Upload, adminOnly: true },
       ].filter(item => {
