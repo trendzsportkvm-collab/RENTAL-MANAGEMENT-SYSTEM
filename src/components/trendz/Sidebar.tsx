@@ -52,7 +52,7 @@ export function Sidebar({
         { key: "import" as PageKey, label: "CSV Import", icon: Upload, adminOnly: true },
       ].filter(item => {
         if ((item as any).superAdminOnly) return profile?.role === "super_admin";
-        if ((item as any).adminOnly) return profile?.role === "super_admin" || profile?.role === "owner";
+        if ((item as any).adminOnly) return profile?.role === "super_admin" || profile?.role === "owner" || profile?.role === "admin";
         return true;
       }),
     },
