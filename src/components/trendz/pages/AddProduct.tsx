@@ -362,12 +362,28 @@ export function AddProduct({
                       const val = e.target.value;
                       setCategory(val);
                       const selectedCat = categories.find(c => c.name === val);
-                      if (selectedCat?.base_sku && (!sku || sku.match(/^[A-Z]+-[0-0]*[1-9]*$/) || sku.length < 5)) {
-                        setSku(`${selectedCat.base_sku}-001`);
-                      } else if (!sku && val) {
-                        const prefix = val.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, '');
-                        if (prefix.length >= 2) setSku(`${prefix}-001`);
-                      } else if (val === "") {
+                      
+                      let basePrefix = selectedCat?.base_sku || "";
+                      if (!basePrefix && val) {
+                        basePrefix = val.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, '');
+                      }
+
+                      if (basePrefix) {
+                        let maxNum = 0;
+                        products.forEach(p => {
+                          if (p.sku.startsWith(`${basePrefix}-`)) {
+                            const numPart = p.sku.split('-')[1];
+                            if (numPart) {
+                              const num = parseInt(numPart, 10);
+                              if (!isNaN(num) && num > maxNum) {
+                                maxNum = num;
+                              }
+                            }
+                          }
+                        });
+                        const nextNum = (maxNum + 1).toString().padStart(3, '0');
+                        setSku(`${basePrefix}-${nextNum}`);
+                      } else {
                         setSku("");
                       }
                     }}
