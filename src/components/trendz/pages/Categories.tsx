@@ -10,11 +10,11 @@ export function Categories() {
   const [newCatBaseSku, setNewCatBaseSku] = useState("");
 
   const handleAdd = async () => {
-    if (!newCatName.trim()) {
-      toast.error("Category name is required");
+    if (!newCatName.trim() || !newCatBaseSku.trim()) {
+      toast.error("Category name and Base SKU are required");
       return;
     }
-    const cat = await addCategory(newCatName.trim(), newCatBaseSku.trim() || undefined);
+    const cat = await addCategory(newCatName.trim(), newCatBaseSku.trim());
     if (cat) {
       toast.success("Category added successfully");
       setNewCatName("");
@@ -54,7 +54,7 @@ export function Categories() {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-muted-foreground">Base SKU (Optional)</label>
+              <label className="text-sm font-medium text-muted-foreground">Base SKU</label>
               <input
                 type="text"
                 placeholder="e.g. WS"
@@ -73,7 +73,7 @@ export function Categories() {
             </button>
             <button
               onClick={handleAdd}
-              disabled={!newCatName.trim()}
+              disabled={!newCatName.trim() || !newCatBaseSku.trim()}
               className="rounded-md bg-white px-4 py-2 text-sm font-medium text-black hover:bg-gray-100 disabled:opacity-50 transition-colors"
             >
               Save Category

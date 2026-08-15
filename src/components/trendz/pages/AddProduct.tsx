@@ -381,10 +381,11 @@ export function AddProduct({
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field label="Base SKU">
                     <input
-                      className={monoInputClass}
+                      className={monoInputClass + " bg-surface opacity-70 cursor-not-allowed"}
                       value={sku}
                       onChange={(e) => setSku(e.target.value.toUpperCase())}
-                      placeholder="e.g. TUX-001"
+                      placeholder="Auto-generated from Category"
+                      readOnly
                     />
                   </Field>
                   <Field label="Base Daily Rate (₹)">
