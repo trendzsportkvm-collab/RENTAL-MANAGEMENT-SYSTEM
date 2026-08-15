@@ -15,6 +15,7 @@ export function EditRentalModal({
 }) {
   const { updateRental } = useTrendz();
   const [form, setForm] = useState<Rental | null>(rental);
+  const [error, setError] = useState("");
   const [discount, setDiscount] = useState(0);
 
   useEffect(() => {
