@@ -129,7 +129,7 @@ export function AllProducts({
                     <input type="checkbox" className="rounded border-border bg-transparent focus:ring-gold" />
                   </td>
                   <td className="px-4 py-3">
-                    <img src={p.image} alt="" className="h-10 w-10 rounded border border-border object-cover" />
+                    <img src={p.image || undefined} alt="" className="h-10 w-10 rounded border border-border object-cover bg-surface-2" />
                   </td>
                   <td className="px-4 py-3">
                     <span className="font-medium text-foreground">

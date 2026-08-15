@@ -118,7 +118,7 @@ export function AllRentals({ onOpen }: { onOpen?: (p: Product) => void }) {
               >
                 <div className="relative aspect-square overflow-hidden bg-black/20">
                   <img
-                    src={p.image}
+                    src={p.image || undefined}
                     alt={p.name}
                     loading="lazy"
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"

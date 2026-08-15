@@ -203,6 +203,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
 
         // 3. Save variations + their stock
         if (draft.variations?.length) {
+          const varIdMap: Record<string, string> = {};
           const { data: branches } = await supabase
             .from("branches")
             .select("id, name");
@@ -222,6 +223,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
               .single();
 
             if (insertedVar && branches) {
+              varIdMap[variation.id] = insertedVar.id;
               const varStockRows = Object.entries(variation.stock)
                 .filter(([, qty]) => qty > 0)
                 .map(([branchName, qty]) => {
@@ -257,6 +259,19 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
                 await supabase.from("inventory_items").insert(inventoryItems);
               }
             }
+          }
+          if (Object.keys(varIdMap).length > 0) {
+            setProducts((prev) =>
+              prev.map((p) => {
+                if (p.id === realId) {
+                  return {
+                    ...p,
+                    variations: p.variations?.map(v => varIdMap[v.id] ? { ...v, id: varIdMap[v.id] } : v)
+                  };
+                }
+                return p;
+              })
+            );
           }
         }
       } catch (e) {
@@ -297,10 +312,9 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
           await supabase.from('products').update(dbPatch).eq('id', id);
         }
 
-        const { data: branches } = await supabase.from("branches").select("id, name");
-        if (!branches) return;
-
         if (patch.variations) {
+          const { data: branches } = await supabase.from("branches").select("id, name");
+          const varIdMap: Record<string, string> = {};
           for (const v of patch.variations) {
             try {
               const isNew = v.id.startsWith('v');
@@ -324,6 +338,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
                   continue;
                 }
                 realVarId = upserted.id;
+                varIdMap[v.id] = realVarId;
               } else {
                 const { error: updateErr } = await supabase.from("product_variations")
                   .update({
@@ -346,7 +361,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
               const varStockRows = Object.entries(v.stock)
                 .filter(([, qty]) => qty > 0)
                 .map(([branchName, qty]) => {
-                  const branch = branches.find((b) => b.name === branchName);
+                  const branch = branches?.find((b) => b.name === branchName);
                   return branch ? { product_id: id, variation_id: realVarId, branch_id: branch.id, quantity: qty } : null;
                 }).filter(Boolean);
                 
@@ -377,7 +392,7 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
               const newInventoryItems = [];
               for (const [branchName, qty] of Object.entries(v.stock)) {
                 if (qty <= 0) continue;
-                const branch = branches.find((b) => b.name === branchName);
+                const branch = branches?.find((b) => b.name === branchName);
                 if (!branch) continue;
                 
                 const existingCount = branchCounts[branch.id] || 0;
@@ -402,6 +417,19 @@ export function TrendzProvider({ children }: { children: ReactNode }) {
             } catch (innerErr) {
               console.error("Error processing variation", v.sku, innerErr);
             }
+          }
+          if (Object.keys(varIdMap).length > 0) {
+            setProducts((prev) =>
+              prev.map((p) => {
+                if (p.id === id) {
+                  return {
+                    ...p,
+                    variations: p.variations?.map(v => varIdMap[v.id] ? { ...v, id: varIdMap[v.id] } : v)
+                  };
+                }
+                return p;
+              })
+            );
           }
         }
       } catch (e) {

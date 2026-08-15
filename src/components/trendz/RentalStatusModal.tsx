@@ -34,7 +34,7 @@ export function RentalStatusModal({
 
         <div className="flex flex-wrap gap-5 mt-2">
           <img
-            src={product.image}
+            src={product.image || undefined}
             alt={product.name}
             width={120}
             height={120}
