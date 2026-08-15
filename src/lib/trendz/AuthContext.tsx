@@ -89,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [supabase]);
 
   const signOut = async () => {
+    localStorage.removeItem("trendz_last_page");
     await supabase.auth.signOut();
     window.location.href = "/login";
   };
