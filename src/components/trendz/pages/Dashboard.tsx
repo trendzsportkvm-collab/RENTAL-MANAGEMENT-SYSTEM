@@ -141,19 +141,25 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
         </div>
       )}
 
-      {!isLoading && activeTab === "rental" && (overdue.length > 0 || dueToday.length > 0) && (
-        <div className="mt-8 rounded-xl border border-rust/20 bg-rust/5 p-4 sm:p-6">
-          <h3 className="font-display text-lg font-semibold text-rust flex items-center gap-2">
-            ⚠️ Daily Alerts Action Center
+      {!isLoading && activeTab === "rental" && (
+        <div className="mt-8 glass">
+          <h3 className="font-display text-lg font-semibold text-foreground">
+            Daily Alerts Action Center
           </h3>
           <p className="text-sm text-muted-foreground mt-1 mb-4">
-            Items that need your attention today. Click the WhatsApp icon to instantly send a standardized reminder.
+            Items that need your attention today. Click the WhatsApp icon to send a standardized reminder.
           </p>
           
-          <div className="grid gap-6 md:grid-cols-2">
+          {overdue.length === 0 && dueToday.length === 0 ? (
+            <div className="rounded-lg border border-border p-4 flex flex-col items-center justify-center text-center bg-surface-2/50">
+              <p className="text-sm font-medium text-foreground">All clear</p>
+              <p className="text-xs text-muted-foreground mt-1">No rentals are due today or overdue.</p>
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2">
             {overdue.length > 0 && (
               <div className="space-y-3">
-                <h4 className="text-sm font-medium tracking-wide uppercase text-rust">Overdue ({overdue.length})</h4>
+                <h4 className="text-sm font-medium tracking-wide uppercase text-foreground">Overdue ({overdue.length})</h4>
                 <div className="flex flex-col gap-2">
                   {overdue.map(r => (
                     <div key={r.id} className="flex items-center justify-between rounded-lg bg-surface px-3 py-2 border border-border">
@@ -172,7 +178,7 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
             
             {dueToday.length > 0 && (
               <div className="space-y-3">
-                <h4 className="text-sm font-medium tracking-wide uppercase text-gold">Due Today ({dueToday.length})</h4>
+                <h4 className="text-sm font-medium tracking-wide uppercase text-foreground">Due Today ({dueToday.length})</h4>
                 <div className="flex flex-col gap-2">
                   {dueToday.map(r => (
                     <div key={r.id} className="flex items-center justify-between rounded-lg bg-surface px-3 py-2 border border-border">
@@ -189,6 +195,7 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
               </div>
             )}
           </div>
+          )}
         </div>
       )}
 
@@ -356,9 +363,11 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
                     </td>
                     <td className="px-3 py-2.5">
                       <div className="relative flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                        <button className={ghostButtonClass + " border-indigo/40 text-indigo"} onClick={(e) => { e.stopPropagation(); onEdit(r); }}>Edit</button>
                         {r.status === "out" && (
-                          <button className={ghostButtonClass} onClick={(e) => { e.stopPropagation(); setReturnRentalId(r.id); }}>Return</button>
+                          <>
+                            <button className={ghostButtonClass + " border-indigo/40 text-indigo"} onClick={(e) => { e.stopPropagation(); onEdit(r); }}>Edit</button>
+                            <button className={ghostButtonClass} onClick={(e) => { e.stopPropagation(); setReturnRentalId(r.id); }}>Return</button>
+                          </>
                         )}
                         <a href={waLink(r.customerPhone, waReminder(r))} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
                           aria-label="WhatsApp reminder"
