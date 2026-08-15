@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useTrendz } from "@/lib/trendz/store";
 import type { PaymentStatus, Rental } from "@/lib/trendz/types";
-import { inr, todayISO } from "@/lib/trendz/utils";
+import { daysBetween, inr, todayISO } from "@/lib/trendz/utils";
 import { Field, goldButtonClass, inputClass, monoInputClass } from "./primitives";
+import { MessageCircle } from "lucide-react";
 
 export function EditRentalModal({
   rental,
@@ -14,11 +15,16 @@ export function EditRentalModal({
 }) {
   const { updateRental } = useTrendz();
   const [form, setForm] = useState<Rental | null>(rental);
-  const [error, setError] = useState("");
+  const [discount, setDiscount] = useState(0);
 
   useEffect(() => {
-    setForm(rental);
-    setError("");
+    if (rental) {
+      setForm(rental);
+      const days = rental.rentDate && rental.dueDate && rental.dueDate > rental.rentDate ? daysBetween(rental.rentDate, rental.dueDate) : 1;
+      const expectedTotal = days * rental.dailyRate * (rental.qty || 1);
+      setDiscount(Math.max(0, expectedTotal - rental.total));
+      setError("");
+    }
   }, [rental]);
 
   if (!rental || !form) return null;
@@ -26,9 +32,11 @@ export function EditRentalModal({
   const set = <K extends keyof Rental>(key: K, value: Rental[K]) =>
     setForm((f) => (f ? { ...f, [key]: value } : f));
 
-  const balance = Math.max(0, form.total - form.advance);
+  const days = form.rentDate && form.dueDate && form.dueDate > form.rentDate ? daysBetween(form.rentDate, form.dueDate) : 1;
+  const computedTotal = Math.max(0, days * form.dailyRate * (form.qty || 1) - discount);
+  const balance = Math.max(0, computedTotal - form.advance);
   const dynamicPaymentStatus: PaymentStatus =
-    form.advance >= form.total ? "paid" : form.advance > 0 ? "partial" : "unpaid";
+    form.advance >= computedTotal ? "paid" : form.advance > 0 ? "partial" : "unpaid";
 
   const save = () => {
     if (!form.customerName.trim()) return setError("Customer name is required");
@@ -40,8 +48,9 @@ export function EditRentalModal({
       rentDate: form.rentDate,
       dueDate: form.dueDate,
       dailyRate: form.dailyRate,
-      total: form.total,
+      total: computedTotal,
       advance: form.advance,
+      bufferDays: form.bufferDays || 0,
       paymentStatus: dynamicPaymentStatus,
       notes: form.notes,
     });
@@ -59,6 +68,24 @@ export function EditRentalModal({
         </DialogHeader>
 
         <div className="grid gap-4 sm:grid-cols-2">
+          {form.variationName ? (
+            <Field label="Variation" className="sm:col-span-2">
+              <input className={inputClass + " opacity-70 bg-white/[0.02]"} value={form.variationName} readOnly />
+            </Field>
+          ) : null}
+          <Field label="Product">
+            <input className={inputClass + " opacity-70 bg-white/[0.02]"} value={form.productName} readOnly />
+          </Field>
+          <Field label="SKU">
+            <input className={monoInputClass + " opacity-70 bg-white/[0.02]"} value={form.sku} readOnly />
+          </Field>
+          <Field label="Branch">
+            <input className={inputClass + " opacity-70 bg-white/[0.02]"} value={form.branch} readOnly />
+          </Field>
+          <Field label="Quantity">
+            <input className={monoInputClass + " opacity-70 bg-white/[0.02]"} value={form.qty} readOnly />
+          </Field>
+
           <Field label="Customer Name">
             <input
               className={inputClass}
@@ -66,17 +93,19 @@ export function EditRentalModal({
               onChange={(e) => set("customerName", e.target.value)}
             />
           </Field>
-          <Field label="Customer Phone">
-            <input
-              className={monoInputClass}
-              value={form.customerPhone}
-              onChange={(e) => set("customerPhone", e.target.value)}
-            />
+          <Field label="Customer Phone" hint="Required · +91 or 10 digits">
+            <div className="relative">
+              <input
+                className={monoInputClass + " pr-9"}
+                value={form.customerPhone}
+                onChange={(e) => set("customerPhone", e.target.value)}
+              />
+              <MessageCircle className="pointer-events-none absolute top-2.5 right-3 h-4 w-4 text-emerald" />
+            </div>
           </Field>
           <Field label="Rent Date">
             <input
               type="date"
-              min={todayISO()}
               className={monoInputClass}
               value={form.rentDate}
               onChange={(e) => set("rentDate", e.target.value)}
@@ -91,20 +120,40 @@ export function EditRentalModal({
               onChange={(e) => set("dueDate", e.target.value)}
             />
           </Field>
+          <Field label="Maintenance Buffer (Days)" hint="Days at dry cleaner post-return">
+            <input
+              type="number"
+              min={0}
+              className={monoInputClass}
+              value={form.bufferDays === 0 ? "" : form.bufferDays}
+              onChange={(e) => set("bufferDays", Number(e.target.value))}
+            />
+          </Field>
           <Field label="Daily Rate (₹)">
             <input
               type="number"
-              className={monoInputClass}
+              className={monoInputClass + " opacity-70 bg-white/[0.02] cursor-not-allowed"}
               value={form.dailyRate === 0 ? "" : form.dailyRate}
-              onChange={(e) => set("dailyRate", Number(e.target.value))}
+              readOnly
+              tabIndex={-1}
+            />
+          </Field>
+          <Field label="Discount (₹)">
+            <input
+              type="number"
+              min={0}
+              className={monoInputClass}
+              value={discount === 0 ? "" : discount}
+              onChange={(e) => setDiscount(Number(e.target.value))}
             />
           </Field>
           <Field label="Total Amount (₹)">
             <input
               type="number"
-              className={monoInputClass}
-              value={form.total === 0 ? "" : form.total}
-              onChange={(e) => set("total", Number(e.target.value))}
+              className={monoInputClass + " opacity-70 bg-white/[0.02] cursor-not-allowed"}
+              value={computedTotal === 0 ? "" : computedTotal}
+              readOnly
+              tabIndex={-1}
             />
           </Field>
           <Field label="Advance Paid (₹)">
