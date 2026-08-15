@@ -60,7 +60,7 @@ export function EditRentalModal({
 
   return (
     <Dialog open={!!rental} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="glass-strong max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="glass-strong max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl font-semibold">
             Edit Rental{" "}

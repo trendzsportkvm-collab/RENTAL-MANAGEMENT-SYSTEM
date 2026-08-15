@@ -74,26 +74,26 @@ export function AllRentals({ onOpen }: { onOpen?: (p: Product) => void }) {
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <select className={inputClass + " w-36"} value={branch} onChange={(e) => setBranch(e.target.value)}>
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+          <select className={inputClass + " w-full sm:w-36"} value={branch} onChange={(e) => setBranch(e.target.value)}>
             <option value="all">All Branches</option>
             {branches.map((b) => <option key={b} value={b}>{b}</option>)}
           </select>
-          <select className={inputClass + " w-40"} value={stockFilter} onChange={(e) => setStockFilter(e.target.value)}>
+          <select className={inputClass + " w-full sm:w-40"} value={stockFilter} onChange={(e) => setStockFilter(e.target.value)}>
             <option value="all">All Stock Status</option>
             <option value="in">In Stock</option>
             <option value="out">Out of Stock</option>
           </select>
-          <div className="flex items-center rounded-md border border-border bg-white/[0.02] p-1 ml-auto sm:ml-0">
+          <div className="flex items-center w-full sm:w-auto justify-between sm:justify-center rounded-md border border-border bg-white/[0.02] p-1 mt-2 sm:mt-0">
             <button
               onClick={() => setView("grid")}
-              className={`rounded p-1.5 transition-colors ${view === "grid" ? "bg-white/[0.08] text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              className={`rounded p-1.5 transition-colors flex-1 sm:flex-none flex justify-center ${view === "grid" ? "bg-white/[0.08] text-foreground" : "text-muted-foreground hover:text-foreground"}`}
             >
               <LayoutGrid className="h-4 w-4" />
             </button>
             <button
               onClick={() => setView("list")}
-              className={`rounded p-1.5 transition-colors ${view === "list" ? "bg-white/[0.08] text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              className={`rounded p-1.5 transition-colors flex-1 sm:flex-none flex justify-center ${view === "list" ? "bg-white/[0.08] text-foreground" : "text-muted-foreground hover:text-foreground"}`}
             >
               <List className="h-4 w-4" />
             </button>

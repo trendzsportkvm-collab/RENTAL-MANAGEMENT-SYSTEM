@@ -36,5 +36,26 @@ ALTER TABLE public.rental_items ADD COLUMN IF NOT EXISTS product_id UUID REFEREN
 ALTER TABLE public.rentals ADD COLUMN IF NOT EXISTS extra_fees NUMERIC DEFAULT 0;
 ALTER TABLE public.rentals ADD COLUMN IF NOT EXISTS extra_fees_reason TEXT;
 
+-- Enforce Strict Row Level Security on all core tables
+ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.product_variations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.branches ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.rentals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.rental_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.product_stock ENABLE ROW LEVEL SECURITY;
+
+-- Apply authenticated-only policies for all tables
+DO $$
+DECLARE
+    t_name text;
+BEGIN
+    FOR t_name IN SELECT tablename FROM pg_tables WHERE schemaname = 'public' LOOP
+        EXECUTE format('DROP POLICY IF EXISTS "Enable all access for authenticated users only" ON public.%I', t_name);
+        EXECUTE format('CREATE POLICY "Enable all access for authenticated users only" ON public.%I FOR ALL TO authenticated USING (true) WITH CHECK (true)', t_name);
+    END LOOP;
+END $$;
+
 -- Notify pgrst to reload the schema immediately
 NOTIFY pgrst, 'reload schema';

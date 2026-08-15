@@ -62,31 +62,31 @@ export function AllProducts({
       </header>
 
       {/* Toolbar */}
-      <div className="glass mt-6 flex flex-wrap items-center justify-between gap-3 p-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <select className={inputClass + " w-40"} value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+      <div className="glass mt-6 flex flex-col md:flex-row md:items-center justify-between gap-4 p-3">
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          <select className={inputClass + " w-full sm:w-40"} value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
             <option value="all">Select a category</option>
             {uniqueCategories.map(c => (
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
           
-          <select className={inputClass + " w-40"} value={stockFilter} onChange={(e) => setStockFilter(e.target.value)}>
+          <select className={inputClass + " w-full sm:w-40"} value={stockFilter} onChange={(e) => setStockFilter(e.target.value)}>
             <option value="all">Filter by stock status</option>
             <option value="in">In stock</option>
             <option value="out">Out of stock</option>
           </select>
-          <button className="h-9 px-4 rounded border border-border text-xs font-medium hover:bg-white/[0.05] transition-colors">Filter</button>
+          <button className="h-9 px-4 w-full sm:w-auto rounded border border-border text-xs font-medium hover:bg-white/[0.05] transition-colors">Filter</button>
         </div>
         
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
           <input
-            className={inputClass + " w-48"}
+            className={inputClass + " w-full sm:w-48"}
             placeholder="Search products…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          <button className="h-9 px-4 rounded border border-border text-xs font-medium hover:bg-white/[0.05] transition-colors">Search products</button>
+          <button className="h-9 px-4 w-full sm:w-auto rounded border border-border text-xs font-medium hover:bg-white/[0.05] transition-colors">Search products</button>
         </div>
       </div>
 
