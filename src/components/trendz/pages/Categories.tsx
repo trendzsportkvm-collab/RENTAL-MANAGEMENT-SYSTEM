@@ -104,7 +104,7 @@ export function Categories() {
                 </td>
                 <td className="px-6 py-4">
                   {c.base_sku ? (
-                    <span className="inline-flex items-center rounded bg-white/10 px-2 py-1 text-xs font-mono font-medium text-white">
+                    <span className="inline-flex items-center rounded bg-black/5 px-2 py-1 text-xs font-mono font-medium text-foreground">
                       {c.base_sku}
                     </span>
                   ) : (
