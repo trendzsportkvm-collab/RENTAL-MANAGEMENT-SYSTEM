@@ -114,7 +114,7 @@ export function Categories() {
                 <td className="px-6 py-4 text-right">
                   <button
                     onClick={() => {
-                      if (confirm(\`Are you sure you want to delete "\${c.name}"?\`)) {
+                      if (confirm(`Are you sure you want to delete "${c.name}"?`)) {
                         deleteCategory(c.id);
                       }
                     }}

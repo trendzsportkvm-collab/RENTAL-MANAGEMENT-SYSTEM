@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 interface Profile {
   id: string;
   full_name: string;
-  role: "super_admin" | "owner" | "staff";
+  role: "super_admin" | "admin" | "owner" | "staff";
   branch_id: string | null;
 }
 
