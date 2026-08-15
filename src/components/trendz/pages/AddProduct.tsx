@@ -102,12 +102,17 @@ export function AddProduct({
     if (productToEdit) return;
     if (!category.trim()) return;
     
-    const categoryLower = category.trim().toLowerCase();
-    const categoryProducts = products.filter(p => (p.category || "").toLowerCase() === categoryLower);
+    const selectedCat = categories.find(c => c.name === category);
+    let prefix = selectedCat?.base_sku || "";
     
-    let prefix = categoryLower.replace(/[^a-z]/gi, '').substring(0, 3).toUpperCase();
-    if (prefix.length < 3) prefix = prefix.padEnd(3, 'X');
-    if (!prefix) prefix = "PRD";
+    if (!prefix) {
+      const categoryLower = category.trim().toLowerCase();
+      prefix = categoryLower.replace(/[^a-z]/gi, '').substring(0, 3).toUpperCase();
+      if (prefix.length < 3) prefix = prefix.padEnd(3, 'X');
+      if (!prefix) prefix = "PRD";
+    }
+    
+    const categoryProducts = products.filter(p => (p.category || "").toLowerCase() === category.trim().toLowerCase());
     
     let maxNum = 0;
     categoryProducts.forEach(p => {
@@ -122,7 +127,7 @@ export function AddProduct({
     
     const nextNum = String(maxNum + 1).padStart(3, '0');
     setSku(`${prefix}-${nextNum}`);
-  }, [category, products, productToEdit]);
+  }, [category, products, productToEdit, categories]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -359,33 +364,7 @@ export function AddProduct({
                     className={inputClass}
                     value={category}
                     onChange={(e) => {
-                      const val = e.target.value;
-                      setCategory(val);
-                      const selectedCat = categories.find(c => c.name === val);
-                      
-                      let basePrefix = selectedCat?.base_sku || "";
-                      if (!basePrefix && val) {
-                        basePrefix = val.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, '');
-                      }
-
-                      if (basePrefix) {
-                        let maxNum = 0;
-                        products.forEach(p => {
-                          if (p.sku.startsWith(`${basePrefix}-`)) {
-                            const numPart = p.sku.split('-')[1];
-                            if (numPart) {
-                              const num = parseInt(numPart, 10);
-                              if (!isNaN(num) && num > maxNum) {
-                                maxNum = num;
-                              }
-                            }
-                          }
-                        });
-                        const nextNum = (maxNum + 1).toString().padStart(3, '0');
-                        setSku(`${basePrefix}-${nextNum}`);
-                      } else {
-                        setSku("");
-                      }
+                      setCategory(e.target.value);
                     }}
                   >
                     <option value="" disabled>Select a Category</option>
