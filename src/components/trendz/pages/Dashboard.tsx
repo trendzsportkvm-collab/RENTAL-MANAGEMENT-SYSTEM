@@ -3,7 +3,7 @@ import { Download, MessageCircle, Filter, ArrowUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { useTrendz } from "@/lib/trendz/store";
 import type { Rental } from "@/lib/trendz/types";
-import { balanceOf, daysBetween, fmtDate, inr, isOverdue, waLink, waReminder } from "@/lib/trendz/utils";
+import { balanceOf, daysBetween, fmtDate, inr, isOverdue, todayISO, waLink, waReminder } from "@/lib/trendz/utils";
 import {
   PaymentBadge,
   RentalStatusBadge,
@@ -89,6 +89,7 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
 
   const active = rentals.filter((r) => r.status === "out");
   const overdue = active.filter(isOverdue);
+  const dueToday = active.filter(r => r.dueDate === todayISO());
 
   const revenue = rows.reduce((a, r) => a + r.total, 0);
   const collected = rows.reduce((a, r) => {
@@ -137,6 +138,57 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
               <SummaryCard label="Record Count" value={rows.length} />
             </>
           )}
+        </div>
+      )}
+
+      {!isLoading && activeTab === "rental" && (overdue.length > 0 || dueToday.length > 0) && (
+        <div className="mt-8 rounded-xl border border-rust/20 bg-rust/5 p-4 sm:p-6">
+          <h3 className="font-display text-lg font-semibold text-rust flex items-center gap-2">
+            ⚠️ Daily Alerts Action Center
+          </h3>
+          <p className="text-sm text-muted-foreground mt-1 mb-4">
+            Items that need your attention today. Click the WhatsApp icon to instantly send a standardized reminder.
+          </p>
+          
+          <div className="grid gap-6 md:grid-cols-2">
+            {overdue.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium tracking-wide uppercase text-rust">Overdue ({overdue.length})</h4>
+                <div className="flex flex-col gap-2">
+                  {overdue.map(r => (
+                    <div key={r.id} className="flex items-center justify-between rounded-lg bg-surface px-3 py-2 border border-border">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{r.customerName}</span>
+                        <span className="text-xs text-muted-foreground">{r.productName} (Due: {fmtDate(r.dueDate)})</span>
+                      </div>
+                      <a href={waLink(r.customerPhone, waReminder(r))} target="_blank" rel="noreferrer" aria-label="WhatsApp reminder" className="rounded-md bg-emerald/10 p-2 text-emerald transition-colors hover:bg-emerald/20 border border-emerald/20">
+                        <MessageCircle className="h-4 w-4" />
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {dueToday.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium tracking-wide uppercase text-gold">Due Today ({dueToday.length})</h4>
+                <div className="flex flex-col gap-2">
+                  {dueToday.map(r => (
+                    <div key={r.id} className="flex items-center justify-between rounded-lg bg-surface px-3 py-2 border border-border">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{r.customerName}</span>
+                        <span className="text-xs text-muted-foreground">{r.productName} (Due Today)</span>
+                      </div>
+                      <a href={waLink(r.customerPhone, waReminder(r))} target="_blank" rel="noreferrer" aria-label="WhatsApp reminder" className="rounded-md bg-emerald/10 p-2 text-emerald transition-colors hover:bg-emerald/20 border border-emerald/20">
+                        <MessageCircle className="h-4 w-4" />
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

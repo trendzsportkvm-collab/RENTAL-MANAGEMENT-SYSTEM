@@ -53,34 +53,41 @@ export const digitsOnly = (s: string) => s.replace(/\D/g, "");
 
 export const waMessage = (r: Rental) =>
   [
-    `Hi ${r.customerName}!`,
+    `✨ *Rental Confirmed!* ✨`,
+    `Hi ${r.customerName}, thank you for choosing *Trendz*!`,
     ``,
-    `Your rental from *Trendz* is confirmed.`,
+    `👔 *Item:* ${r.productName} (${r.sku})`,
+    `📅 *Rented On:* ${fmtDate(r.rentDate)}`,
+    `⏰ *Due Back:* ${fmtDate(r.dueDate)}`,
     ``,
-    `Item: ${r.productName}`,
-    `Branch: ${r.branch}`,
-    `Rented: ${fmtDate(r.rentDate)}`,
-    `Due Back: ${fmtDate(r.dueDate)}`,
-    `Token: ${r.token}`,
-    `Total: ₹${r.total}`,
-    `Advance: ₹${r.advance}`,
-    `Balance: ₹${balanceOf(r)}`,
+    `💰 *Financials:*`,
+    `• Total: ₹${r.total}`,
+    `• Advance Paid: ₹${r.advance}`,
+    `• Pending Balance: ₹${balanceOf(r)}`,
     ``,
-    `Please return by *${fmtDate(r.dueDate)}*. Thank you!`,
+    `📌 *Token ID:* ${r.token}`,
+    `📍 *Branch:* ${r.branch}`,
+    ``,
+    `We hope you have a great event! Please ensure the item is returned on time to avoid late fees.`,
   ].join("\n");
 
 export const waReminder = (r: Rental) =>
   [
-    `Hi ${r.customerName}!`,
-    ``,
-    `A friendly reminder from *Trendz*.`,
-    `Item: ${r.productName} (Token: ${r.token})`,
-    `Due Back: ${fmtDate(r.dueDate)}`,
-    `Balance: ₹${balanceOf(r)}`,
+    isOverdue(r) ? `⚠️ *OVERDUE RENTAL ALERT* ⚠️` : `🔔 *Friendly Reminder from Trendz!* 🔔`,
+    `Hi ${r.customerName},`,
     ``,
     isOverdue(r)
-      ? `This rental is *overdue* — please return it at the earliest.`
-      : `Please return it on time. Thank you!`,
+      ? `Your rental for the *${r.productName}* was due back on *${fmtDate(r.dueDate)}* and is currently overdue.`
+      : `Just a quick reminder that your rental for the *${r.productName}* is due back on *${fmtDate(r.dueDate)}*.`,
+    ``,
+    `📌 *Token ID:* ${r.token}`,
+    balanceOf(r) > 0 ? `💰 *Pending Balance:* ₹${balanceOf(r)}` : `💰 *Pending Balance:* ₹0 (Fully Paid)`,
+    ``,
+    isOverdue(r)
+      ? `Please return the item at the earliest. Note that late fees may apply for each additional day.`
+      : `We hope you enjoyed using it! Please return it to our *${r.branch}* branch on time.`,
+    ``,
+    `Thank you! ✨`,
   ].join("\n");
 
 export const waPhone = (phone: string) => {
