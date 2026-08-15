@@ -71,8 +71,19 @@ export const waMessage = (r: Rental) =>
     `We hope you have a great event! Please ensure the item is returned on time to avoid late fees.`,
   ].join("\n");
 
-export const waReminder = (r: Rental) =>
-  [
+export const waReminder = (r: Rental) => {
+  if (r.status === "returned") {
+    return [
+      `🎉 *Thank You from Trendz!* 🎉`,
+      `Hi ${r.customerName},`,
+      ``,
+      `We have successfully received the *${r.productName}* (Token: ${r.token}).`,
+      ``,
+      `Thank you so much for choosing Trendz for your event! We hope you loved it and look forward to serving you again. ✨`,
+    ].join("\n");
+  }
+
+  return [
     isOverdue(r) ? `⚠️ *OVERDUE RENTAL ALERT* ⚠️` : `🔔 *Friendly Reminder from Trendz!* 🔔`,
     `Hi ${r.customerName},`,
     ``,
@@ -89,6 +100,7 @@ export const waReminder = (r: Rental) =>
     ``,
     `Thank you! ✨`,
   ].join("\n");
+};
 
 export const waPhone = (phone: string) => {
   const d = digitsOnly(phone);

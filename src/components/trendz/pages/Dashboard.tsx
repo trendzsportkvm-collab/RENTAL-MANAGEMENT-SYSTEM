@@ -142,7 +142,7 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
       )}
 
       {!isLoading && activeTab === "rental" && (
-        <div className="mt-8 glass">
+        <div className="mt-8 glass rounded-xl p-4 sm:p-6">
           <h3 className="font-display text-lg font-semibold text-foreground">
             Daily Alerts Action Center
           </h3>
@@ -151,7 +151,7 @@ export function Dashboard({ onEdit }: { onEdit: (r: Rental) => void }) {
           </p>
           
           {overdue.length === 0 && dueToday.length === 0 ? (
-            <div className="rounded-lg border border-border p-4 flex flex-col items-center justify-center text-center bg-surface-2/50">
+            <div className="flex flex-col items-center justify-center text-center py-8">
               <p className="text-sm font-medium text-foreground">All clear</p>
               <p className="text-xs text-muted-foreground mt-1">No rentals are due today or overdue.</p>
             </div>
