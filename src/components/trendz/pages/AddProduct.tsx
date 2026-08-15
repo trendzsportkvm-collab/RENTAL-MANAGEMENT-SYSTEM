@@ -384,7 +384,7 @@ export function AddProduct({
                       className={monoInputClass + " bg-surface opacity-70 cursor-not-allowed"}
                       value={sku}
                       onChange={(e) => setSku(e.target.value.toUpperCase())}
-                      placeholder="Auto-generated from Category"
+                      placeholder=""
                       readOnly
                     />
                   </Field>
