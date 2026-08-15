@@ -241,7 +241,7 @@ export function RentalFormModal({
             />
           </Field>
 
-          <Field label="Daily Rate (₹)"><input type="number" className={monoInputClass + " opacity-70 bg-white/[0.02] cursor-not-allowed"} value={dailyRate === 0 ? "" : dailyRate} readOnly tabIndex={-1} /></Field>
+          <Field label="Daily Rate (₹)"><input type="number" className={monoInputClass + " opacity-70 bg-white/[0.02] cursor-not-allowed"} value={dailyRate} readOnly tabIndex={-1} /></Field>
           <Field label="Discount (₹)">
             <input
               type="number"
@@ -257,7 +257,7 @@ export function RentalFormModal({
           >
             <input
               className={monoInputClass + " opacity-70 bg-white/[0.02] cursor-not-allowed"}
-              value={total === 0 ? "" : total}
+              value={total}
               readOnly
               tabIndex={-1}
             />
